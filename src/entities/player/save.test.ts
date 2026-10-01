@@ -220,6 +220,19 @@ describe('битый сейв не роняет запуск', () => {
   }
 });
 
+describe('сейв более новой версии', () => {
+  it('не читается, но помечен как чужой, а не битый', () => {
+    const result = loadSave({ ...filled, version: SAVE_VERSION + 1 });
+    expect(result.save).toEqual(EMPTY_SAVE);
+    expect(result.recovered).toBe(true);
+    expect(result.tooNew).toBe(true);
+  });
+
+  it('битый сейв своей версии чужим не считается', () => {
+    expect(loadSave({ version: SAVE_VERSION }).tooNew).toBeUndefined();
+  });
+});
+
 describe('миграции', () => {
   const zeroToOne: Migration = (data) => ({
     ...data,

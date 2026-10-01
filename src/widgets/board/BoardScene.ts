@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 
 import type { Board, BuildingCell, Cell, MoveStage } from '@/entities/board';
+import { facingOf, inBounds, indexAt, peekCell } from '@/entities/board';
 import type { BuildingId, Tier } from '@/entities/building';
 import { TIERS } from '@/entities/building';
 import { longMatchBonus } from '@/entities/player';
 import { ECONOMY_CONFIG } from '@/shared/config/economy';
 import type { NightEvent } from '@/entities/wave';
 import type { Direction, Position } from '@/shared/lib/geometry';
-import { step } from '@/shared/lib/geometry';
+import { samePosition, step } from '@/shared/lib/geometry';
 import type { AtlasMap } from '@/shared/art';
 import { atlasAnimFor, atlasFrameFor, shotFrameFor, TIER_TINT } from '@/shared/art';
 import type { Audio } from '@/shared/audio';
@@ -329,7 +330,7 @@ export class BoardScene extends Phaser.Scene {
   private readonly turretViews: CellView[] = [];
   private tapHandler: ((at: Position) => void) | null = null;
   private inspectHandler: ((at: Position) => void) | null = null;
-  private holdTimer: number | null = null;
+  private holdTimer: Phaser.Time.TimerEvent | null = null;
   private readyHandler: (() => void) | null = null;
   private layoutHandler: ((layout: SceneLayout) => void) | null = null;
   private stagesDoneHandler: (() => void) | null = null;
@@ -589,10 +590,6 @@ export class BoardScene extends Phaser.Scene {
   }
 
   /**
-   * Полоса босса: алый столбец под плитками и шевроны «вверх» под сеткой —
-   * оттуда он выйдет. Только в Сумерках: на Рассвете он уже идёт сам.
-   */
-  /**
    * Зона атаки: клетки залиты цветом постройки и обведены, сама постройка —
    * ярче. Под полем (куда достают лоза и горгульи нижнего ряда) — тоже.
    */
@@ -632,6 +629,10 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Полоса босса: алый столбец под плитками и шевроны «вверх» под сеткой —
+   * оттуда он выйдет. Только в Сумерках: на Рассвете он уже идёт сам.
+   */
   private redrawBossLane(layout: SceneLayout, board: BoardSize): void {
     const lane = this.bossLane;
     if (lane === null || this.daylightTarget === 1 || lane < 0 || lane >= board.width) {
@@ -791,6 +792,8 @@ export class BoardScene extends Phaser.Scene {
     if (last === undefined) return;
 
     const generation = ++this.generation;
+    // Прошлый ход мог ещё доигрывать: его твины стянули бы клетки нового.
+    this.abortBoardTweens();
     this.stagesTarget = last.board;
     void this.runStages(stages, generation).then(() => {
       if (generation === this.generation) this.finishStages();
@@ -818,7 +821,7 @@ export class BoardScene extends Phaser.Scene {
       return;
     }
 
-    this.dealing.clear();
+    this.abortBoardTweens();
     const falls = board.cells.map((_, index) => {
       const cell = { x: index % board.width, y: Math.floor(index / board.width) };
       // Сверху клетка идёт поверх цитадели: проявляется на лету, а не висит над ней.
@@ -840,7 +843,8 @@ export class BoardScene extends Phaser.Scene {
             state.lift = 0;
             state.alpha = 1;
             this.applyDeal(index);
-            this.dealing.delete(index);
+            // Клетку могла уже перехватить следующая раздача — её не трогаем.
+            if (this.dealing.get(index) === state) this.dealing.delete(index);
             resolve();
           },
         });
@@ -875,12 +879,22 @@ export class BoardScene extends Phaser.Scene {
   showBoard(board: Board): void {
     this.generation++;
     this.stagesTarget = null;
+    this.abortBoardTweens();
+    this.landAllBlood();
+    this.setBoard(board);
+  }
+
+  /**
+   * Оборвать недоигранные ход и раздачу. Клетки встанут на место при
+   * следующей перерисовке; обещания оборванных твинов так и не разрешатся, и
+   * поэтому старый показ дальше не идёт.
+   */
+  private abortBoardTweens(): void {
+    for (const state of this.dealing.values()) this.tweens.killTweensOf(state);
     this.dealing.clear();
     for (const view of this.cellViews) {
       if (view !== undefined) this.tweens.killTweensOf(view.container);
     }
-    this.landAllBlood();
-    this.setBoard(board);
   }
 
   /** Пропуск: показать итог немедленно. */
@@ -1131,13 +1145,20 @@ export class BoardScene extends Phaser.Scene {
 
     for (const stage of stages) {
       if (generation !== this.generation) return;
-      await this.runStage(previous, stage);
+      await this.runStage(previous, stage, generation);
       previous = stage.board;
     }
   }
 
-  private async runStage(previous: Board | null, stage: MoveStage): Promise<void> {
+  private async runStage(
+    previous: Board | null,
+    stage: MoveStage,
+    generation: number,
+  ): Promise<void> {
     const cellSize = this.layout?.cellSize ?? 0;
+    // После каждого ожидания: показ мог прервать новый ход или пропуск, и
+    // тогда это поле уже не наше.
+    const stale = (): boolean => generation !== this.generation;
 
     if (stage.kind === 'settle') {
       this.setBoard(stage.board);
@@ -1170,11 +1191,11 @@ export class BoardScene extends Phaser.Scene {
     if (
       stage.kind === 'action' &&
       previous !== null &&
-      stage.removed.some((at) => previous.cells[at.y * previous.width + at.x]?.kind === 'potion')
+      stage.removed.some((at) => peekCell(previous, at)?.kind === 'potion')
     ) {
       this.audio?.play('potion');
       for (const at of stage.removed) {
-        const cell = previous.cells[at.y * previous.width + at.x];
+        const cell = peekCell(previous, at);
         if (cell?.kind === 'potion') this.drinkPotion(at, cell.tier);
       }
     }
@@ -1214,6 +1235,7 @@ export class BoardScene extends Phaser.Scene {
             : this.pullInto(cell, focus, DURATION.vanish);
         }),
       );
+      if (stale()) return;
     }
 
     this.setBoard(stage.board);
@@ -1235,7 +1257,7 @@ export class BoardScene extends Phaser.Scene {
   private birthBurst(cell: Position, board: Board): void {
     const layout = this.layout;
     if (layout === null) return;
-    const born = board.cells[cell.y * board.width + cell.x];
+    const born = peekCell(board, cell);
     const tint =
       born?.kind === 'building'
         ? TIER_TINT[born.tier]
@@ -1291,7 +1313,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   private viewAt(cell: Position): CellView | undefined {
-    return this.board === null ? undefined : this.cellViews[cell.y * this.board.width + cell.x];
+    return this.board === null ? undefined : this.cellViews[indexAt(this.board, cell)];
   }
 
   /** Клетка выезжает с места соседа — так читается обмен. */
@@ -1368,13 +1390,15 @@ export class BoardScene extends Phaser.Scene {
       const held = this.dragFrom;
       this.cancelHold();
       if (held !== null && this.inspectHandler !== null) {
-        this.holdTimer = window.setTimeout(() => {
+        // Часы сцены, а не окна: на паузе (реклама) они стоят, и со сценой
+        // гибнут. Они же ускорены вместе с боем — палец держат столько же.
+        this.holdTimer = this.time.delayedCall(HOLD_MS * this.time.timeScale, () => {
           this.holdTimer = null;
           if (this.dragFrom === null || this.dragFrom.x !== held.x || this.dragFrom.y !== held.y)
             return;
           this.releaseDrag();
           this.inspectHandler?.(held);
-        }, HOLD_MS);
+        });
       }
     });
 
@@ -1418,7 +1442,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   private cancelHold(): void {
-    if (this.holdTimer !== null) window.clearTimeout(this.holdTimer);
+    this.holdTimer?.remove();
     this.holdTimer = null;
   }
 
@@ -1630,11 +1654,16 @@ export class BoardScene extends Phaser.Scene {
       this.dropHpBar(actor);
     }
     this.onField.clear();
-    this.enemies?.releaseAll();
-    this.effects?.releaseAll();
-    this.flames?.releaseAll();
-    this.shots?.releaseAll();
-    this.numbers?.releaseAll();
+    // Твины и подписки на конец анимации держат объекты пула: доиграв, они
+    // вернули бы в пул или потащили объект, уже отданный следующему бою.
+    for (const sprite of this.flames?.activeItems() ?? []) {
+      sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+    }
+    for (const pool of [this.enemies, this.effects, this.flames, this.shots, this.numbers]) {
+      if (pool === null) continue;
+      this.tweens.killTweensOf([...pool.activeItems()]);
+      pool.releaseAll();
+    }
     for (const beam of this.beams) beam.destroy();
     this.beams.clear();
     for (const item of this.fading) item.destroy();
@@ -1833,16 +1862,12 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
-  /** Кто стреляет из этой клетки: постройка поля или горгулья в башне замка. */
   /** Вид клетки поля или башни замка — чей значок анимировать. */
   private shooterView(cell: Position): CellView | null {
     const board = this.board;
     if (board === null) return null;
-    const inside = cell.x >= 0 && cell.x < board.width && cell.y >= 0 && cell.y < board.height;
-    if (inside) return this.cellViews[cell.y * board.width + cell.x] ?? null;
-    const index = this.turrets.findIndex(
-      (turret) => turret.at.x === cell.x && turret.at.y === cell.y,
-    );
+    if (inBounds(board, cell)) return this.cellViews[indexAt(board, cell)] ?? null;
+    const index = this.turretIndexAt(cell);
     return index < 0 ? null : (this.turretViews[index] ?? null);
   }
 
@@ -1942,20 +1967,24 @@ export class BoardScene extends Phaser.Scene {
   /** Повернуть мортиру на поле к цели: влево или вправо. */
   private faceMortar(cell: Position, left: boolean): void {
     const board = this.board;
-    if (board === null || cell.x < 0 || cell.x >= board.width || cell.y < 0) return;
-    if (cell.y >= board.height) return;
+    if (board === null || !inBounds(board, cell)) return;
     // Кадр атласа нарисован стволом вправо: влево — отражение.
-    this.cellViews[cell.y * board.width + cell.x]?.icon.setFlipX(left);
+    this.cellViews[indexAt(board, cell)]?.icon.setFlipX(left);
   }
 
+  /** Кто стреляет из этой клетки: постройка поля или горгулья в башне замка. */
   private shooterAt(cell: Position): BuildingCell | null {
     const board = this.board;
     if (board === null) return null;
-    const inside = cell.x >= 0 && cell.x < board.width && cell.y >= 0 && cell.y < board.height;
-    const found = inside
-      ? board.cells[cell.y * board.width + cell.x]
-      : this.turrets.find((turret) => turret.at.x === cell.x && turret.at.y === cell.y)?.cell;
+    const found = inBounds(board, cell)
+      ? peekCell(board, cell)
+      : this.turrets[this.turretIndexAt(cell)]?.cell;
     return found?.kind === 'building' ? found : null;
+  }
+
+  /** Номер башни замка в этой клетке над полем, или -1. */
+  private turretIndexAt(cell: Position): number {
+    return this.turrets.findIndex((turret) => samePosition(turret.at, cell));
   }
 
   /** Кадр снаряда из атласа. null — атласа нет или снаряда в нём нет. */
@@ -2242,10 +2271,6 @@ export class BoardScene extends Phaser.Scene {
   }
 
   /**
-   * Пламя: анимация атласа один раз, основанием на точке — у ворот, когда враг
-   * бьёт цитадель, и там, где лопнуло ядро. Нет анимации — огненный круг.
-   */
-  /**
    * Вспышка попадания — своя у каждой постройки: осколки камня горгульи,
    * алые щепки шипов лозы, пепел и огонь ядра мортиры (`hit-<вид>-1…`).
    * Кадры сменяются вручную, без анимации Phaser: их число у видов разное.
@@ -2301,6 +2326,10 @@ export class BoardScene extends Phaser.Scene {
     sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => flames.release(sprite));
   }
 
+  /**
+   * Пламя: анимация атласа один раз, основанием на точке — у ворот, когда враг
+   * бьёт цитадель, и там, где лопнуло ядро. Нет анимации — огненный круг.
+   */
   private flame(x: number, y: number, cellSize: number): void {
     const key = animKey('fx-fire');
     if (this.atlas === null || !this.anims.exists(key)) {
@@ -2662,8 +2691,9 @@ function paintTierPips(pips: Phaser.GameObjects.Graphics, tier: number, half: nu
  * развернули, иначе у двух правых столбцов — влево.
  */
 function facesLeft(cell: Cell, x: number, width: number): boolean {
-  if (cell.kind !== 'building' || cell.building !== 'mortar') return false;
-  return (cell.facing ?? (x >= width - 2 ? 'left' : 'right')) === 'left';
+  return (
+    cell.kind === 'building' && cell.building === 'mortar' && facingOf(cell, x, width) === 'left'
+  );
 }
 
 /**

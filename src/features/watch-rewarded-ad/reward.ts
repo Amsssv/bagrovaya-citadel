@@ -6,10 +6,10 @@ import type { PlatformAdapter } from '@/shared/api';
  * Ролик — по желанию игрока и за награду. Полноэкранная реклама идёт
  * отдельно, перед новым забегом (`app/App.tsx`, как в matching-game).
  *
- * На время ролика геймплей останавливается: площадка ждёт парных событий
- * start/stop, а звук и таймеры не должны идти под рекламой. Возврат
- * геймплея — в `finally`: иначе сорвавшийся показ оставил бы игру в
- * остановленном состоянии навсегда.
+ * Геймплей start/stop здесь не шлётся: площадка ждёт парных событий, и их
+ * выводит из одного условия тот, кто показывает ролик (`runAd` в
+ * `app/App.tsx` ставит игру на паузу). Свой `gameplayStart` в конце показа
+ * сообщил бы «игра идёт» и на экране итога забега, где её нет.
  *
  * Сколько свапов даёт ролик, спека не говорит — цифра приходит снаружи.
  */
@@ -28,12 +28,7 @@ export async function watchRewarded(
   // мог появиться между отрисовкой и нажатием.
   if (!platform.isRewardedAvailable()) return false;
 
-  platform.gameplayStop();
-  try {
-    return (await platform.showRewarded(placement)) === 'rewarded';
-  } finally {
-    platform.gameplayStart();
-  }
+  return (await platform.showRewarded(placement)) === 'rewarded';
 }
 
 /** Сколько свапов заработано. Ноль — награды нет. */

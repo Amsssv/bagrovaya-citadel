@@ -30,6 +30,11 @@ function assertInBounds(board: Board, position: Position): void {
   }
 }
 
+/** Клетка или undefined, если позиция за краем. Для ввода, где край — не ошибка. */
+export function peekCell(board: Board, position: Position): Cell | undefined {
+  return inBounds(board, position) ? board.cells[indexAt(board, position)] : undefined;
+}
+
 export function cellAt(board: Board, position: Position): Cell {
   assertInBounds(board, position);
   return board.cells[indexAt(board, position)] as Cell;

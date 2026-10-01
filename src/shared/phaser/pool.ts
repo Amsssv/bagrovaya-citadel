@@ -10,6 +10,8 @@ export interface Pool<T> {
   acquire(): T;
   release(item: T): void;
   releaseAll(): void;
+  /** Что сейчас занято — снимок: возврат по ходу обхода его не меняет. */
+  activeItems(): readonly T[];
   /** Сколько объектов создано за всё время. */
   readonly size: number;
   /** Сколько сейчас занято. */
@@ -37,6 +39,10 @@ export function createPool<T>(factory: () => T, reset: (item: T) => void): Pool<
 
     releaseAll(): void {
       for (const item of [...busy]) this.release(item);
+    },
+
+    activeItems(): readonly T[] {
+      return [...busy];
     },
 
     get size(): number {

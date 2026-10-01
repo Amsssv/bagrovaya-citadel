@@ -10,6 +10,7 @@ import {
   serializeSave,
   withBest,
 } from '@/entities/player';
+import { peekCell } from '@/entities/board';
 import { specFor, statsAt } from '@/entities/enemy';
 import { attackZone, nextBossNight } from '@/entities/wave';
 import type { NightHistory, PlayerMove, RunState } from '@/processes/night';
@@ -52,7 +53,7 @@ import type { SoundSettings } from '@/features/adjust-sound';
 import { SoundControl, effectiveVolume } from '@/features/adjust-sound';
 import { LanguageSelect } from '@/features/switch-lang';
 import type { Beat, TipId } from '@/features/tutorial';
-import { TUTORIAL_BEATS, focusCells, isCard, isExpectedMove, nextTip } from '@/features/tutorial';
+import { TIPS, TUTORIAL_BEATS, isCard, isExpectedMove, nextTip } from '@/features/tutorial';
 import { watchRewarded } from '@/features/watch-rewarded-ad';
 import type {
   AttackZoneView,
@@ -64,14 +65,13 @@ import type {
   Speed,
   TurretView,
 } from '@/widgets/board';
-import { BoardView, DAYLIGHT_MS, cellToScreen } from '@/widgets/board';
+import { BoardView, DAYLIGHT_MS } from '@/widgets/board';
 import { BloodMeter } from '@/widgets/blood-meter';
 import { BossBar } from '@/widgets/boss-bar';
 import type { CellInfo } from '@/widgets/guide';
 import { GuidePanel, describeCell } from '@/widgets/guide';
 import { RecordsPanel, recordsView } from '@/widgets/records';
 import { RunOverPanel } from '@/widgets/run-over';
-import type { CoachGesture, CoachRect } from '@/widgets/tutorial';
 import { Coach, TipCard, beatText as textOfBeat, tipFrame, tipText } from '@/widgets/tutorial';
 
 import styles from './App.module.scss';
@@ -82,6 +82,8 @@ import { applyLang, saveLangChoice } from './lang';
 import { SAVE_INTERVAL_MS, STORAGE_KEY, boot } from './persistence';
 import { PILOT, PILOT_STORAGE, useBotPilot } from './botPilot';
 import { withTutorial } from './tutorialRun';
+import { coachFor } from './coach';
+import { useDocumentHidden, useFlash, useReserveBottom } from './hooks';
 
 /**
  * Экран ночи: Сумерки, Рассвет, следующая ночь.
@@ -114,77 +116,6 @@ export interface AppProps {
   readonly platform: PlatformAdapter;
 }
 
-interface CoachView {
-  readonly hole: CoachRect | null;
-  readonly gesture: CoachGesture;
-  readonly from?: { x: number; y: number };
-  readonly to?: { x: number; y: number };
-}
-
-/**
- * Где подсветка обучения и какой жест показывает рука. Ход — окно над его
- * клетками; отмена — окно над кнопкой; бой — одна подсказка, без окна.
- */
-function coachFor(
-  beat: Beat | undefined,
-  layout: SceneLayout | null,
-  undoButton: HTMLButtonElement | null,
-): CoachView | null {
-  if (beat === undefined) return null;
-  if (beat.kind === 'battle') return { hole: null, gesture: 'tap' };
-  if (beat.kind === 'undo') {
-    if (undoButton === null) return null;
-    const rect = undoButton.getBoundingClientRect();
-    const pad = 6;
-    return {
-      hole: {
-        x: rect.x - pad,
-        y: rect.y - pad,
-        width: rect.width + pad * 2,
-        height: rect.height + pad * 2,
-      },
-      gesture: 'tap',
-      from: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 },
-    };
-  }
-  if (beat.kind !== 'move' || layout === null) return null;
-  const centres = focusCells(beat).map((cell) => cellToScreen(layout, cell));
-  const [first] = centres;
-  if (first === undefined) return null;
-  const half = layout.cellSize / 2 + 4;
-  const xs = centres.map((point) => point.x);
-  const ys = centres.map((point) => point.y);
-  const x = Math.min(...xs) - half;
-  const y = Math.min(...ys) - half;
-  const hole = { x, y, width: Math.max(...xs) + half - x, height: Math.max(...ys) + half - y };
-  const { move } = beat;
-  if (move.type === 'swap') {
-    return {
-      hole,
-      gesture: 'drag',
-      from: cellToScreen(layout, move.from),
-      to: cellToScreen(layout, move.to),
-    };
-  }
-  if (move.type === 'drop' || move.type === 'nest') {
-    // Рука тянет за край — на клетку дальше поля: прочь или в башню.
-    const OFF: Readonly<Record<Direction, readonly [number, number]>> = {
-      up: [0, -1],
-      down: [0, 1],
-      left: [-1, 0],
-      right: [1, 0],
-    };
-    const [dx, dy] = OFF[move.direction];
-    return {
-      hole,
-      gesture: 'drag',
-      from: first,
-      to: { x: first.x + dx * layout.cellSize, y: first.y + dy * layout.cellSize },
-    };
-  }
-  return { hole, gesture: 'tap', from: first };
-}
-
 export function App({ platform }: AppProps) {
   const [session, setSession] = useState(() => {
     const first = boot(PILOT_STORAGE === undefined ? {} : { storage: PILOT_STORAGE, fresh: true });
@@ -213,7 +144,7 @@ export function App({ platform }: AppProps) {
   const [clearToken, setClearToken] = useState(0);
   /** Кровь за длинный матч, которая ещё летит к шкале: шкала её пока не показывает. */
   const [bloodInFlight, setBloodInFlight] = useState(0);
-  const [hidden, setHidden] = useState(false);
+  const hidden = useDocumentHidden();
   // Пауза — как в matching-game, из трёх независимых источников: вкладка
   // скрыта, идёт наша реклама, площадка сама открыла своё окно
   // (game_api_pause). Под паузой звук молчит, поле стоит (требования 4.7 и
@@ -222,12 +153,7 @@ export function App({ platform }: AppProps) {
   const [platformPaused, setPlatformPaused] = useState(false);
   const paused = hidden || adPaused || platformPaused;
   /** Надпись о бонусной крови: комбо и длинные слияния. `key` перезапускает её. */
-  const [bonus, setBonus] = useState<(BonusToast & { key: number }) | null>(null);
-  useEffect(() => {
-    if (bonus === null) return;
-    const timer = window.setTimeout(() => setBonus(null), BONUS_TOAST_MS);
-    return () => window.clearTimeout(timer);
-  }, [bonus]);
+  const [bonus, showBonus] = useFlash<BonusToast>(BONUS_TOAST_MS);
   // Строки берутся из модуля i18n синхронно; состояние здесь — только чтобы
   // смена языка перерисовала всё дерево.
   const [lang, setLangState] = useState<Lang>(getLang);
@@ -243,27 +169,8 @@ export function App({ platform }: AppProps) {
   const [sceneReady, setSceneReady] = useState(false);
   const readySent = useRef(false);
 
-  // Канвас лежит под всем экраном, подвал — поверх облаков. Поле под подвал
-  // заходить не должно, поэтому сцене сообщаем, сколько он занимает снизу,
-  // вместе с безопасной зоной телефона.
   const footerRef = useRef<HTMLElement>(null);
-  const [reserveBottom, setReserveBottom] = useState(0);
-  useEffect(() => {
-    const footer = footerRef.current;
-    const screen = footer?.parentElement;
-    if (footer === null || screen === null || screen === undefined) return;
-    const measure = (): void => {
-      // Подвал без раскладки (скрыт, ещё не встал) даёт top = 0 и «занимает»
-      // весь экран — поле схлопнулось бы. Такой замер пропускаем.
-      if (footer.offsetHeight === 0) return;
-      setReserveBottom(screen.getBoundingClientRect().bottom - footer.getBoundingClientRect().top);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(screen);
-    observer.observe(footer);
-    return () => observer.disconnect();
-  }, []);
+  const reserveBottom = useReserveBottom(footerRef);
   const [mode, setMode] = useState<PlayerMode>('guest');
   const [rows, setRows] = useState<readonly LeaderboardEntry[]>([]);
   const [recordsOpen, setRecordsOpen] = useState(false);
@@ -272,11 +179,9 @@ export function App({ platform }: AppProps) {
   // середине, доигрывается без него.
   /** Подсказки к первой встрече, которые уже показаны. */
   const [tips, setTips] = useState<readonly string[]>(session.save.settings.tips);
-  // Бот за игрока — только на dev-сервере, `?bot=1` (app/botPilot.ts).
-  const pilot = PILOT;
   // Номер шага сценария (features/tutorial/script.ts); null — обучения нет.
   const [beatIndex, setBeatIndex] = useState<number | null>(() =>
-    !session.save.settings.tutorialDone && session.fresh && pilot === null ? 0 : null,
+    !session.save.settings.tutorialDone && session.fresh && PILOT === null ? 0 : null,
   );
   const beatRef = useRef(beatIndex);
   const [tutorialDone, setTutorialDone] = useState(session.save.settings.tutorialDone);
@@ -286,15 +191,19 @@ export function App({ platform }: AppProps) {
     const finished = next !== null && next >= TUTORIAL_BEATS.length;
     if (finished) {
       setTutorialDone(true);
-      setTips((seen) => [
-        ...new Set([...seen, 'gargoyle', 'vine', 'mortar', 'fogveil', 'potion', 'turret']),
-      ]);
+      setTips((seen) => [...new Set([...seen, ...TIPS])]);
     }
     const value = finished ? null : next;
     beatRef.current = value;
     setBeatIndex(value);
   }, []);
   const beat: Beat | undefined = beatIndex === null ? undefined : TUTORIAL_BEATS[beatIndex];
+  /** Текущий шаг для обработчиков: читается из ref, а не из замыкания. */
+  const beatNow = useCallback(
+    (): Beat | undefined =>
+      beatRef.current === null ? undefined : TUTORIAL_BEATS[beatRef.current],
+    [],
+  );
   const nextBeat = useCallback(() => {
     if (beatRef.current !== null) setBeat(beatRef.current + 1);
   }, [setBeat]);
@@ -366,21 +275,17 @@ export function App({ platform }: AppProps) {
       audio.unlock();
     };
     document.addEventListener('pointerdown', unlock, { once: true });
-
-    const onVisibility = (): void => {
-      setHidden(document.hidden);
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
+    return () => document.removeEventListener('pointerdown', unlock);
   }, [audio]);
 
   useEffect(() => {
     audio.setPaused(paused);
   }, [audio, paused]);
+  /** Пауза без учёта рекламы: к ней звук возвращается, когда ролик кончился. */
+  const pausedBesidesAdRef = useRef(hidden || platformPaused);
+  useEffect(() => {
+    pausedBesidesAdRef.current = hidden || platformPaused;
+  }, [hidden, platformPaused]);
 
   useEffect(() => platform.onPause(setPlatformPaused), [platform]);
 
@@ -432,6 +337,9 @@ export function App({ platform }: AppProps) {
         return await show();
       } finally {
         setAdPaused(false);
+        // Реклама, кончившаяся до перерисовки (SDK отказал сразу), не меняет
+        // `paused`: эффект выше не сработает, и звук остался бы выключен.
+        audio.setPaused(pausedBesidesAdRef.current);
       }
     },
     [audio],
@@ -630,6 +538,19 @@ export function App({ platform }: AppProps) {
     historyRef.current = next;
     setHistoryState(next);
   }, []);
+  /** Забег — сразу и в ref, и в состояние: следующий обработчик читает ref. */
+  const commitRun = useCallback((next: RunState) => {
+    runRef.current = next;
+    setRun(next);
+  }, []);
+  /** Забег с начала ночи: отменять в нём пока нечего. */
+  const commitNight = useCallback(
+    (next: RunState, rng: typeof refillRng) => {
+      commitRun(next);
+      setHistory(openNight(next, rng));
+    },
+    [commitRun, setHistory],
+  );
 
   const play = useCallback(
     (move: PlayerMove) => {
@@ -644,8 +565,7 @@ export function App({ platform }: AppProps) {
         nests: current.nests,
       };
       // В обучении проходит только ход, которого ждёт шаг сценария.
-      const current_beat = beatRef.current === null ? undefined : TUTORIAL_BEATS[beatRef.current];
-      if (beatRef.current !== null && !isExpectedMove(current_beat, move)) return;
+      if (beatRef.current !== null && !isExpectedMove(beatNow(), move)) return;
       // Выходной: ходы бесплатные и без досыпки, пить и сбрасывать нельзя.
       const dayOff = current.dayOff === true;
       const legal = dayOff
@@ -663,16 +583,15 @@ export function App({ platform }: AppProps) {
         ? stepDayOff(current, move, options)
         : stepInTwilight(current, move, options);
       setHistory(remember(historyRef.current, current, rng, step.move.refilled));
-      runRef.current = next;
-      setRun(next);
+      commitRun(next);
       setView({ board: next.board, stages: step.move.stages });
       if (step.move.stages.length > 0) setSettled(false);
-      if (beatRef.current !== null) setBeat(beatRef.current + 1);
+      nextBeat();
       if (step.bonus > 0) setBloodInFlight((pending) => pending + step.bonus);
       const toast = bonusToast(step.groups, step.comboBonus, step.mergeBonus);
-      if (toast !== null) setBonus({ ...toast, key: Date.now() });
+      if (toast !== null) showBonus(toast);
     },
-    [atDawn, audio, options, setBeat, setHistory],
+    [atDawn, audio, beatNow, commitRun, nextBeat, options, setHistory, showBonus],
   );
 
   // Отмена — как в оригинале: откатить можно сколько угодно ходов подряд, пока
@@ -687,7 +606,7 @@ export function App({ platform }: AppProps) {
     (beat === undefined || beat.kind === 'undo');
   const undoMove = useCallback(() => {
     if (atDawn || isExhausted(runRef.current.purse) || !canUndo(historyRef.current)) return;
-    const tutorialBeat = beatRef.current === null ? undefined : TUTORIAL_BEATS[beatRef.current];
+    const tutorialBeat = beatNow();
     if (tutorialBeat !== undefined && tutorialBeat.kind !== 'undo') return;
     if (tutorialBeat !== undefined) nextBeat();
     const back = undo(historyRef.current);
@@ -698,28 +617,19 @@ export function App({ platform }: AppProps) {
       refillRng: rng,
       options: { ...current.options, rng },
     }));
-    runRef.current = back.state;
-    setRun(back.state);
+    commitRun(back.state);
     setView({ board: back.state.board, stages: [] });
     setBloodInFlight(0);
-  }, [atDawn, nextBeat, setHistory]);
+  }, [atDawn, beatNow, commitRun, nextBeat, setHistory]);
 
   // Отменить нельзя — объясняем, как оригинал: в бою «поздно», иначе — что
   // отмена живёт, пока не упали новые плитки.
-  const [notice, setNotice] = useState<{ text: string; key: number } | null>(null);
-  useEffect(() => {
-    if (notice === null) return;
-    const timer = window.setTimeout(() => setNotice(null), NOTICE_MS);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
+  const [notice, showNotice] = useFlash<{ text: string }>(NOTICE_MS);
   const explainUndo = useCallback(() => {
     // В обучении кнопка ждёт своего шага — объяснять нечего.
     if (beatRef.current !== null) return;
-    setNotice({
-      text: atDawn ? t('app.tooLateTheOrder') : t('app.youCanUndoOnly'),
-      key: Date.now(),
-    });
-  }, [atDawn]);
+    showNotice({ text: atDawn ? t('app.tooLateTheOrder') : t('app.youCanUndoOnly') });
+  }, [atDawn, showNotice]);
 
   const handleBlood = useCallback((amount: number) => {
     setBloodInFlight((pending) => Math.max(0, pending - amount));
@@ -745,8 +655,7 @@ export function App({ platform }: AppProps) {
       }
       // В выходной за край не сбрасывают: на место ничего не упадёт.
       if (runRef.current.dayOff === true) return;
-      const board = runRef.current.board;
-      const cell = board.cells[from.y * board.width + from.x];
+      const cell = peekCell(runRef.current.board, from);
       if (cell?.kind === 'building' && beatRef.current === null && confirmToss) {
         setTossAsk({ from, direction, frame: `${cell.building}-${cell.tier}` });
         return;
@@ -767,11 +676,8 @@ export function App({ platform }: AppProps) {
   const [dayOffAsked, setDayOffAsked] = useState<number | null>(null);
   const takeDayOff = useCallback(() => {
     setDayOffAsked(runRef.current.night);
-    const next = startDayOff(runRef.current);
-    runRef.current = next;
-    setRun(next);
-    setHistory(openNight(next, refillRng));
-  }, [refillRng, setHistory]);
+    commitNight(startDayOff(runRef.current), refillRng);
+  }, [commitNight, refillRng]);
   const declineDayOff = useCallback(() => {
     setDayOffAsked(runRef.current.night);
   }, []);
@@ -780,27 +686,22 @@ export function App({ platform }: AppProps) {
   // сцена доиграет оседание.
   const finishRearrange = useCallback(() => {
     const { run: next, stages } = finishDayOff(runRef.current, options);
-    runRef.current = next;
-    setRun(next);
-    setHistory(openNight(next, refillRng));
+    commitNight(next, refillRng);
     setView({ board: next.board, stages });
     setSettled(false);
-  }, [options, refillRng, setHistory]);
+  }, [commitNight, options, refillRng]);
 
   // Сдаться — как «Give Up» в оригинале: забег кончается сразу, с
   // подтверждением. Итог и рекорд — как при падении цитадели.
   const surrender = useCallback(() => {
     setGiveUpAsk(false);
-    const next = giveUp(runRef.current);
-    runRef.current = next;
-    setRun(next);
-  }, []);
+    commitRun(giveUp(runRef.current));
+  }, [commitRun]);
 
   const handleInspect = useCallback((at: Position) => {
     // В обучении у каждого касания своё дело — осмотр не мешает сценарию.
     if (beatRef.current !== null) return;
-    const board = runRef.current.board;
-    const cell = board.cells[at.y * board.width + at.x];
+    const cell = peekCell(runRef.current.board, at);
     setInspect(cell === undefined ? null : describeCell(cell));
     setInspectAt(at);
   }, []);
@@ -828,7 +729,7 @@ export function App({ platform }: AppProps) {
       return spot.x === zoneAt.x && spot.y === zoneAt.y;
     });
     const tower = slot === undefined ? undefined : run.nests.occupied[slot.id]?.cell;
-    const cell = zoneAt.y < 0 ? tower : board.cells[zoneAt.y * board.width + zoneAt.x];
+    const cell = zoneAt.y < 0 ? tower : peekCell(board, zoneAt);
     if (cell?.kind !== 'building') return null;
     const cells = attackZone(board, zoneAt, cell, options.buildings, {
       shootDepth: options.shootDepth,
@@ -848,31 +749,31 @@ export function App({ platform }: AppProps) {
   );
 
   const handleDawn = useCallback(() => {
-    if (atDawn || over) return;
-    const report = runDawn(run, options);
+    if (atDawn || isRunOver(runRef.current)) return;
+    const report = runDawn(runRef.current, options);
     afterDawnRef.current = report.after;
     setAfterDawn(report.after);
     setBattle((current) => ({
       events: report.dawn.events,
       token: current.token + 1,
     }));
-  }, [atDawn, options, over, run]);
+  }, [atDawn, options]);
 
   // Рассвет наступает сам: кровь кончилась, и поле доиграло последний ход.
   // Запуск — отсюда, а не из эффекта: сигнал «доиграно» и есть тот момент.
   const handleStagesDone = useCallback(() => {
     setSettled(true);
-    if (!isExhausted(run.purse)) return;
+    if (!isExhausted(runRef.current.purse)) return;
     // В обучении рассвет ждёт карточку: игрок сначала читает, что будет.
     if (beatRef.current !== null) return;
     handleDawn();
-  }, [handleDawn, run.purse]);
+  }, [handleDawn]);
 
   const dismissTutorialCard = useCallback(() => {
-    const current = beatRef.current === null ? undefined : TUTORIAL_BEATS[beatRef.current];
+    const current = beatNow();
     nextBeat();
     if (current?.kind === 'dawn') handleDawn();
-  }, [handleDawn, nextBeat]);
+  }, [beatNow, handleDawn, nextBeat]);
 
   const dismissTip = useCallback((id: TipId) => {
     setTips((seen) => (seen.includes(id) ? seen : [...seen, id]));
@@ -880,7 +781,7 @@ export function App({ platform }: AppProps) {
 
   const handleBattleEnd = useCallback(() => {
     // Первый день обучения кончился — итоговая карточка.
-    if (beatRef.current !== null && TUTORIAL_BEATS[beatRef.current]?.kind === 'battle') nextBeat();
+    if (beatNow()?.kind === 'battle') nextBeat();
     const pending = afterDawnRef.current;
     afterDawnRef.current = null;
     setAfterDawn(null);
@@ -891,14 +792,26 @@ export function App({ platform }: AppProps) {
     if (pending.stats.bossesKilled > runRef.current.stats.bossesKilled && !isRunOver(pending)) {
       setVictory({ night: runRef.current.night, next: nextBossNight(BOSS_CONFIG, pending.night) });
     }
-    runRef.current = pending;
-    setRun(pending);
     // Новая ночь — новая отмена.
-    setHistory(openNight(pending, refillRng));
+    commitNight(pending, refillRng);
     // Между ночами — естественная пауза для полноэкранной рекламы. В обучении
     // её нет: первый день не прерываем.
     if (beatRef.current === null) void fullscreenIfDue();
-  }, [fullscreenIfDue, nextBeat, refillRng, setHistory]);
+  }, [beatNow, commitNight, fullscreenIfDue, nextBeat, refillRng]);
+
+  /** Другой забег целиком: поле раздаётся заново, бой и кровь в пути — забыты. */
+  const resetSession = useCallback(
+    (next: typeof session, deal: boolean) => {
+      setSession(next);
+      commitNight(next.run, next.refillRng);
+      setView({ board: next.run.board, stages: [], deal });
+      afterDawnRef.current = null;
+      setAfterDawn(null);
+      setBloodInFlight(0);
+      setClearToken((token) => token + 1);
+    },
+    [commitNight],
+  );
 
   // Новый забег — в той же цитадели: выбора цитадели пока нет.
   const restartNow = useCallback(() => {
@@ -912,16 +825,8 @@ export function App({ platform }: AppProps) {
       tutorial && PILOT === null,
     );
     if (tutorial) setBeat(0);
-    setSession(next);
-    runRef.current = next.run;
-    setRun(next.run);
-    setHistory(openNight(next.run, next.refillRng));
-    setView({ board: next.run.board, stages: [], deal: true });
-    afterDawnRef.current = null;
-    setAfterDawn(null);
-    setBloodInFlight(0);
-    setClearToken((token) => token + 1);
-  }, [gate, level.id, setBeat, setHistory]);
+    resetSession(next, true);
+  }, [gate, level.id, resetSession, setBeat]);
 
   /**
    * Поднять игру заново из сейва на устройстве — после того как туда лёг
@@ -930,15 +835,7 @@ export function App({ platform }: AppProps) {
    */
   const adoptSaved = useCallback(() => {
     const next = boot(PILOT_STORAGE === undefined ? {} : { storage: PILOT_STORAGE });
-    setSession(next);
-    runRef.current = next.run;
-    setRun(next.run);
-    setHistory(openNight(next.run, next.refillRng));
-    setView({ board: next.run.board, stages: [], deal: next.fresh });
-    afterDawnRef.current = null;
-    setAfterDawn(null);
-    setBloodInFlight(0);
-    setClearToken((token) => token + 1);
+    resetSession(next, next.fresh);
     const { settings } = next.save;
     setSpeed(settings.speed);
     setSound(settings.sound);
@@ -951,7 +848,7 @@ export function App({ platform }: AppProps) {
     savedAtRef.current = next.save.savedAt;
     contentRef.current = null;
     nightRef.current = next.run.night;
-  }, [setHistory]);
+  }, [resetSession]);
 
   /**
    * Сверка с облаком — при запуске и после входа в аккаунт. Облако новее, а
@@ -959,9 +856,15 @@ export function App({ platform }: AppProps) {
    */
   const syncCloud = useCallback(async () => {
     cloudSyncedRef.current = false;
+    // Местный сейв новее сборки: облако не трогаем ни в одну сторону, иначе
+    // облачный сейв лёг бы на диск поверх него. На диск такая сессия не пишет
+    // вовсе (`boot`), так что и пропуска облаку здесь нет.
+    if (session.readOnly) return;
     if (platform.getPlayerMode() === 'authorized') {
       const raw = await platform.loadData<unknown>();
       const cloud = raw === null ? null : loadSave(raw);
+      // Облако записала версия новее: ни читать, ни затирать его нельзя.
+      if (cloud?.tooNew === true) return;
       const local = loadSave(snapshotRef.current).save;
       const usable = cloud !== null && !cloud.recovered ? cloud.save : null;
       if (chooseSave(local, usable, touchedRef.current) === 'cloud') {
@@ -977,7 +880,7 @@ export function App({ platform }: AppProps) {
     }
     cloudSyncedRef.current = true;
     cloudGate.request(snapshotRef.current, Date.now());
-  }, [adoptSaved, cloudGate, platform, storage]);
+  }, [adoptSaved, cloudGate, platform, session.readOnly, storage]);
 
   useEffect(() => {
     if (platformInited) void syncCloud();
@@ -1003,17 +906,14 @@ export function App({ platform }: AppProps) {
       .then((watched) => {
         if (!watched || !canRepair(runRef.current)) return;
         setRepairUsed(true);
-        const repaired = repairCitadel(runRef.current, CITADEL_CONFIG.startHearts);
-        runRef.current = repaired;
-        setRun(repaired);
-        setHistory(openNight(repaired, refillRng));
+        commitNight(repairCitadel(runRef.current, CITADEL_CONFIG.startHearts), refillRng);
         // Со стен смываем, кто остался с проигранного боя: ночь начинается заново.
         setClearToken((token) => token + 1);
       })
       .finally(() => {
         setRepairing(false);
       });
-  }, [platform, refillRng, runAd, setHistory]);
+  }, [commitNight, platform, refillRng, runAd]);
 
   const bossLane = over ? null : session.bossLane(run.night);
   // Отсчёт до босса — цель ночей, как «The mother of dragons is coming in N
@@ -1067,7 +967,7 @@ export function App({ platform }: AppProps) {
             }
           : null;
   useBotPilot({
-    config: pilot,
+    config: PILOT,
     run,
     options,
     bossLane,
@@ -1077,7 +977,7 @@ export function App({ platform }: AppProps) {
   });
 
   const bossArrival = BOSS_CONFIG.nights.indexOf(run.night);
-  const coach = coachFor(beat, layout, undoButton);
+  const coach = coachFor(beat, layout, undoButton?.getBoundingClientRect() ?? null);
   const beatText = beat === undefined ? null : textOfBeat(beat.id);
 
   const current = recordOf(run.stats, SCORE_CONFIG.weights);

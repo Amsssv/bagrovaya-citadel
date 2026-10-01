@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-
 import type { Lang } from '@/shared/lib/i18n';
 import { LANGS, t } from '@/shared/lib/i18n';
-import { Icon } from '@/shared/ui';
+import { Icon, usePopover } from '@/shared/ui';
 
 import styles from './LanguageSelect.module.scss';
 
@@ -24,24 +22,7 @@ export interface LanguageSelectProps {
 }
 
 export function LanguageSelect({ current, onPick }: LanguageSelectProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent): void => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const { open, setOpen, ref } = usePopover<HTMLDivElement>();
 
   const label = t('lang.language');
 

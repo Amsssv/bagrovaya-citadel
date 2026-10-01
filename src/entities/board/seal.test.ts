@@ -41,6 +41,15 @@ describe('печать поднимает одну постройку', () => {
     );
   });
 
+  it('развёрнутая мортира остаётся развёрнутой', () => {
+    const flipped = { ...building('mortar', 'raw'), facing: 'left' as const };
+    const one = withCells(board, [[{ x: 0, y: 0 }, flipped]]);
+    expect(cellAt(applySealAt(one, { x: 0, y: 0 }, 'bone'), { x: 0, y: 0 })).toEqual({
+      ...building('mortar', 'bone'),
+      facing: 'left',
+    });
+  });
+
   it('не трогает исходное поле', () => {
     const before = pictureOf(board);
     applySealAt(board, { x: 0, y: 0 }, 'bone');

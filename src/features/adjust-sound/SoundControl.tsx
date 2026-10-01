@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId } from 'react';
 
 import { t } from '@/shared/lib/i18n';
-import { Icon } from '@/shared/ui';
+import { Icon, usePopover } from '@/shared/ui';
 
 import type { SoundChannel, SoundSettings } from './sound';
 import { isSilent, toggleMuted, withVolume } from './sound';
@@ -28,26 +28,9 @@ export interface SoundControlProps {
 }
 
 export function SoundControl({ settings, fallback, onChange, toggles = [] }: SoundControlProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const { open, setOpen, ref } = usePopover<HTMLDivElement>();
   const musicId = useId();
   const sfxId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent): void => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   const label = t('settings.settings');
   const silent = isSilent(settings);

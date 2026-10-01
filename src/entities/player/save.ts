@@ -196,6 +196,11 @@ export interface LoadResult {
   readonly save: SaveData;
   /** true — сейв не прочитался, взяли значения по умолчанию. */
   readonly recovered: boolean;
+  /**
+   * Сейв записан более новой версией игры. Прочитать его нельзя, но и
+   * затирать нельзя: это чужой прогресс, а не мусор.
+   */
+  readonly tooNew?: true;
 }
 
 function asRecord(raw: unknown): Record<string, unknown> | null {
@@ -219,6 +224,7 @@ export function loadSave(
 
   let data = record;
   let version = typeof data['version'] === 'number' ? data['version'] : 0;
+  if (version > SAVE_VERSION) return { save: EMPTY_SAVE, recovered: true, tooNew: true };
 
   while (version < SAVE_VERSION) {
     const migration = migrations[version];

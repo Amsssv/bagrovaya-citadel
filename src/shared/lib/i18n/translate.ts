@@ -56,8 +56,11 @@ function interpolate(text: string, params: MessageParams | undefined): string {
 
 /** Строка по ключу на текущем языке. Нет перевода — русская, нет и её — ключ. */
 export function t(key: MessageKey, params?: MessageParams): string {
-  const lang = getLang();
-  const value = lookup(DICTIONARIES[lang], key) ?? lookup(DICTIONARIES.ru, key);
+  const own = lookup(DICTIONARIES[getLang()], key);
+  // Формы множественного числа выбираются по правилам того языка, из чьего
+  // словаря взята строка: у русских форм нет `other`.
+  const lang = own === undefined ? 'ru' : getLang();
+  const value = own ?? lookup(DICTIONARIES.ru, key);
   if (typeof value === 'string') return interpolate(value, params);
   if (typeof value === 'object' && value !== null && 'one' in value) {
     const count = Number(params?.['count'] ?? 0);

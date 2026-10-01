@@ -1,5 +1,5 @@
 import type { Board, Cell, FireSpec } from '@/entities/board';
-import { coveredCells, positionAt } from '@/entities/board';
+import { coveredCells, facingOf, positionAt } from '@/entities/board';
 import type { BuildingBook, BuildingSpec, TierStats } from '@/entities/building';
 import { specFor as buildingSpec, statsFor } from '@/entities/building';
 import type { Citadel, Nests } from '@/entities/citadel';
@@ -57,13 +57,8 @@ interface Turret {
   cooldown: number;
 }
 
-/**
- * Мортира в оригинале смотрит вправо, а поставленная у правого края — влево;
- * развернуть её можно тапом (`facing` клетки).
- */
 function sideOf(cell: Cell, position: Position, width: number): 1 | -1 {
-  if (cell.kind === 'building' && cell.facing !== undefined) return cell.facing === 'left' ? -1 : 1;
-  return position.x >= width - 2 ? -1 : 1;
+  return facingOf(cell, position.x, width) === 'left' ? -1 : 1;
 }
 
 function fireSpecOf(spec: BuildingSpec, stats: TierStats): FireSpec {

@@ -71,6 +71,11 @@ export interface Boot {
   readonly refillRng: Rng;
   /** Сейв не прочитался, начали с чистого листа. */
   readonly recovered: boolean;
+  /**
+   * На устройстве сейв более новой версии игры: играем с чистого листа, но
+   * поверх него ничего не пишем.
+   */
+  readonly readOnly: boolean;
   /** Забег новый, а не поднятый из сейва: поле раздаётся заново. */
   readonly fresh: boolean;
   /**
@@ -136,9 +141,17 @@ function chooseLevel(id: CitadelLevelId): CitadelLevel {
   return level;
 }
 
+/** Хранилище, которое читает, но молча не пишет: для чужого, более нового сейва. */
+function readOnlyStorage(storage: Storage): Storage {
+  return { read: (key) => storage.read(key), write: () => {}, remove: () => {} };
+}
+
 export function boot(options: BootOptions = {}): Boot {
-  const storage = options.storage ?? createBrowserStorage();
-  const loaded = loadSave(storage.read(STORAGE_KEY));
+  const disk = options.storage ?? createBrowserStorage();
+  const loaded = loadSave(disk.read(STORAGE_KEY));
+  // Сейв новее этой сборки (её отдал старый кэш) — играть можно, но поверх
+  // него ничего не пишется: это прогресс, а не мусор.
+  const storage = loaded.tooNew === true ? readOnlyStorage(disk) : disk;
   const nests = createNests(CITADEL_CONFIG.nests);
 
   const saved = loaded.save.run;
@@ -166,6 +179,7 @@ export function boot(options: BootOptions = {}): Boot {
       level,
       refillRng: restored.rng,
       recovered: loaded.recovered,
+      readOnly: loaded.tooNew === true,
       fresh: false,
       bossLane: bossLaneFor(restored.rng.snapshot().seed),
     };
@@ -193,6 +207,7 @@ export function boot(options: BootOptions = {}): Boot {
     level,
     refillRng,
     recovered: loaded.recovered,
+    readOnly: loaded.tooNew === true,
     fresh: true,
     bossLane: bossLaneFor(refillRng.snapshot().seed),
   };

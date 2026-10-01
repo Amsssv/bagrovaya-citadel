@@ -7,4 +7,5 @@ export { hideLoading, reportLoading } from './appLoader';
 export { Sprite, hasSprite } from './Sprite';
 export type { SpriteProps } from './Sprite';
 export { ConfirmSheet } from './ConfirmSheet';
+export { usePopover } from './usePopover';
 export type { ConfirmAction, ConfirmSheetProps } from './ConfirmSheet';

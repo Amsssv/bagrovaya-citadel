@@ -3,7 +3,6 @@ import { canSealTier, sealTier } from '@/entities/building';
 
 import { cellAt, inBounds, withCells } from './board';
 import type { Board, Cell, Position } from './types';
-import { building } from './types';
 
 /**
  * Печать крови на поле (§6): поднимает одну постройку на ступень, не требуя
@@ -34,5 +33,6 @@ export function applySealAt(board: Board, position: Position, seal: SealId): Boa
       `Печать «${seal}» не ложится на клетку (${String(position.x)}, ${String(position.y)})`,
     );
   }
-  return withCells(board, [[position, building(cell.building, sealTier(cell.tier, seal))]]);
+  // Печать меняет только ступень: развёрнутая мортира остаётся развёрнутой.
+  return withCells(board, [[position, { ...cell, tier: sealTier(cell.tier, seal) }]]);
 }

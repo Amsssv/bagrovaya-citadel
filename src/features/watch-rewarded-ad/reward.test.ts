@@ -10,17 +10,17 @@ describe('ролик за награду', () => {
     expect(await watchForSwaps({ platform, placement: 'swaps', swaps: 5 })).toBe(5);
   });
 
-  it('на время ролика геймплей останавливается и возобновляется после', async () => {
-    // Площадка ждёт парных событий, а звук и таймеры не должны идти под рекламой.
+  it('геймплеем не управляет: паузу на время ролика ставит тот, кто его показал', async () => {
+    // Площадка ждёт парных start/stop; свой start в конце показа пришёл бы и
+    // на экран итога забега, где игры нет.
     const platform = createMockPlatform();
     await watchForSwaps({ platform, placement: 'swaps', swaps: 5 });
-    expect(platform.calls).toEqual(['gameplayStop', 'showRewarded:swaps', 'gameplayStart']);
+    expect(platform.calls).toEqual(['showRewarded:swaps']);
   });
 
-  it('закрытый ролик награды не даёт, но геймплей возвращает', async () => {
+  it('закрытый ролик награды не даёт', async () => {
     const platform = createMockPlatform({ rewarded: 'closed' });
     expect(await watchForSwaps({ platform, placement: 'swaps', swaps: 5 })).toBe(0);
-    expect(platform.calls).toContain('gameplayStart');
   });
 
   it('рекламы нет — ролик даже не запрашиваем', async () => {

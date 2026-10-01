@@ -1,4 +1,5 @@
 import type { SealId, Tier } from '@/entities/building';
+import { samePosition } from '@/shared/lib/geometry';
 import type { Rng } from '@/shared/lib/rng';
 
 import { withCells } from './board';
@@ -100,8 +101,6 @@ export interface MoveResult {
   /** Последовательность состояний поля для анимации. */
   readonly stages: readonly MoveStage[];
 }
-
-const samePosition = (a: Position, b: Position): boolean => a.x === b.x && a.y === b.y;
 
 /**
  * Где встанет постройка (§6): на клетке, где игрок в последний раз двигал

@@ -8,6 +8,7 @@ import {
   applySeal,
   applySwap,
   applyTeleport,
+  EMPTY,
   building,
   canBlast,
   canDropOffEdge,
@@ -16,6 +17,8 @@ import {
   canSealAt,
   canSwap,
   canTeleport,
+  facingOf,
+  peekCell,
   withCells,
 } from '@/entities/board';
 import type { Tier } from '@/entities/building';
@@ -144,14 +147,11 @@ export function costOf(move: PlayerMove, costs: MoveCosts): number {
 
 /** Куда смотрит мортира в этой клетке — как в бою: у правого края влево. */
 export function mortarFacing(board: Board, at: Position): 'left' | 'right' {
-  const cell = board.cells[at.y * board.width + at.x];
-  if (cell?.kind === 'building' && cell.facing !== undefined) return cell.facing;
-  return at.x >= board.width - 2 ? 'left' : 'right';
+  return facingOf(peekCell(board, at) ?? EMPTY, at.x, board.width);
 }
 
 function isMortar(board: Board, at: Position): boolean {
-  if (at.x < 0 || at.y < 0 || at.x >= board.width || at.y >= board.height) return false;
-  const cell = board.cells[at.y * board.width + at.x];
+  const cell = peekCell(board, at);
   return cell?.kind === 'building' && cell.building === 'mortar';
 }
 
@@ -251,7 +251,7 @@ export function playMove(
       break;
     case 'flip': {
       // Ход без досыпки: поле то же, у мортиры другое направление.
-      const cell = state.board.cells[move.at.y * state.board.width + move.at.x] as BuildingCell;
+      const cell = peekCell(state.board, move.at) as BuildingCell;
       const facing = mortarFacing(state.board, move.at) === 'left' ? 'right' : 'left';
       const flipped = withCells(state.board, [[move.at, { ...cell, facing }]]);
       result = {

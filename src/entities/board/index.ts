@@ -10,13 +10,22 @@ export type {
 } from './types';
 export { EMPTY, HARVEST, building, potion, tile } from './types';
 
-export { cellAt, createEmptyBoard, inBounds, indexAt, positionAt, withCells } from './board';
+export {
+  cellAt,
+  createEmptyBoard,
+  inBounds,
+  indexAt,
+  peekCell,
+  positionAt,
+  withCells,
+} from './board';
 export { canDropOffEdge, canSwap, dropOffEdge, swap } from './swap';
 export { findMatches, matchedIndices } from './match';
 export { applyMerges, findMerges } from './merge';
 export type { Merge, Mergeable } from './merge';
 export { applySealAt, canSealAt } from './seal';
 export { coveredCells } from './fire';
+export { facingOf } from './facing';
 export type { FireSpec } from './fire';
 export type { Match } from './match';
 export { refill, settle, settleAndRefill } from './gravity';

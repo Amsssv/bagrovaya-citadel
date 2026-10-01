@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { boot, newRunSeed } from './persistence';
+import { SAVE_VERSION } from '@/entities/player';
+import { createMemoryStorage } from '@/shared/api';
+
+import { STORAGE_KEY, boot, newRunSeed } from './persistence';
 
 const picture = (seed?: number) =>
   JSON.stringify(boot(seed === undefined ? { fresh: true } : { fresh: true, seed }).run.board);
@@ -33,5 +36,26 @@ describe('сид нового забега', () => {
     expect(newRunSeed()).toBe(123_456);
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+});
+
+describe('сейв более новой версии игры', () => {
+  it('на диске остаётся нетронутым: сессия играет, но не пишет', () => {
+    const disk = createMemoryStorage();
+    const newer = JSON.stringify({ version: SAVE_VERSION + 1, progress: 'чужой' });
+    disk.write(STORAGE_KEY, newer);
+    const session = boot({ storage: disk });
+    expect(session.readOnly).toBe(true);
+    expect(session.fresh).toBe(true);
+    session.storage.write(STORAGE_KEY, 'поверх');
+    expect(disk.read(STORAGE_KEY)).toBe(newer);
+  });
+
+  it('свой сейв пишется как обычно', () => {
+    const disk = createMemoryStorage();
+    const session = boot({ storage: disk });
+    expect(session.readOnly).toBe(false);
+    session.storage.write(STORAGE_KEY, 'новое');
+    expect(disk.read(STORAGE_KEY)).toBe('новое');
   });
 });

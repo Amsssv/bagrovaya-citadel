@@ -113,10 +113,21 @@ export function createYandexPlatform(): PlatformAdapter {
           sdk?.on('game_api_resume', () => {
             emitPause(false);
           });
-          player = (await sdk?.getPlayer({ scopes: false })) ?? null;
-          payments = (await sdk?.getPayments({ signed: false })) ?? null;
         } catch {
           // Площадки нет или она не поднялась — играем без неё.
+          return;
+        }
+        // Игрок и покупки поднимаются порознь: отказ одного не должен
+        // отключать другое на всю сессию.
+        try {
+          player = (await sdk?.getPlayer({ scopes: false })) ?? null;
+        } catch {
+          // Без игрока — гость: местный сейв, без облака.
+        }
+        try {
+          payments = (await sdk?.getPayments({ signed: false })) ?? null;
+        } catch {
+          // Без покупок — магазин закрыт.
         }
       })();
       return initOnce;

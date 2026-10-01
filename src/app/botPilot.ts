@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { PlayerMove, RunOptions, RunState } from '@/processes/night';
-import { STRATEGIST, chooseStrategistMove } from '@/processes/night/strategist';
 import type { Storage } from '@/shared/api';
 import { createMemoryStorage } from '@/shared/api';
 import { createRng } from '@/shared/lib/rng';
@@ -12,7 +11,9 @@ import { createRng } from '@/shared/lib/rng';
  *
  * Только для dev-сервера: `?bot=1`, быстрее — `?bot=1&pace=150` (пауза между
  * ходами, мс). Обучение и подсказки пропускаются, карточки закрываются сами.
- * В сборке выключен: адрес App читает только под `import.meta.env.DEV`.
+ * В сборке выключен: адрес App читает только под `import.meta.env.DEV`, а сам
+ * стратег грузится отдельным куском, только когда бот включён, — в игру он
+ * не попадает.
  */
 export interface PilotConfig {
   /** Пауза между ходами, мс. */
@@ -39,6 +40,8 @@ export const PILOT: PilotConfig | null =
 export const PILOT_STORAGE: Storage | undefined =
   PILOT === null ? undefined : createMemoryStorage();
 
+type Strategist = typeof import('@/processes/night/strategist');
+
 export interface PilotInput {
   readonly config: PilotConfig | null;
   readonly run: RunState;
@@ -61,6 +64,18 @@ export function useBotPilot({
   dismiss,
 }: PilotInput): void {
   const rng = useRef(createRng(20260930));
+  const [brain, setBrain] = useState<Strategist | null>(null);
+
+  useEffect(() => {
+    if (config === null) return;
+    let alive = true;
+    void import('@/processes/night/strategist').then((module) => {
+      if (alive) setBrain(module);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [config]);
 
   useEffect(() => {
     if (config === null || dismiss === null) return;
@@ -71,13 +86,15 @@ export function useBotPilot({
   }, [config, dismiss]);
 
   useEffect(() => {
-    if (config === null || !ready || dismiss !== null || run.purse.swaps <= 0) return;
+    if (config === null || brain === null) return;
+    if (!ready || dismiss !== null || run.purse.swaps <= 0) return;
     const timer = setTimeout(() => {
+      const { STRATEGIST, chooseStrategistMove } = brain;
       const move = chooseStrategistMove(run, options, rng.current, STRATEGIST, bossLane);
       if (move !== null) play(move);
     }, config.pace);
     return () => {
       clearTimeout(timer);
     };
-  }, [bossLane, config, dismiss, options, play, ready, run]);
+  }, [bossLane, brain, config, dismiss, options, play, ready, run]);
 }

@@ -63,6 +63,16 @@ describe('пул объектов', () => {
     expect(pool.size).toBe(2);
   });
 
+  it('activeItems — снимок занятого, который не меняется от возврата', () => {
+    const pool = things();
+    const a = pool.acquire();
+    const b = pool.acquire();
+    const items = pool.activeItems();
+    pool.release(a);
+    expect(items).toEqual([a, b]);
+    expect(pool.activeItems()).toEqual([b]);
+  });
+
   it('повторный возврат того же объекта пул не портит', () => {
     const pool = things();
     const item = pool.acquire();

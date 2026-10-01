@@ -125,69 +125,42 @@ export function BoardView({
 }: BoardViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<BoardScene | null>(null);
-  // Сцена живёт дольше любого рендера, поэтому обработчик берём через ref —
+  // Сцена живёт дольше любого рендера, поэтому обработчики берём через ref —
   // иначе пришлось бы пересоздавать игру на каждое обновление React.
-  const swapRef = useRef(onSwap);
+  const handlers = {
+    onSwap,
+    onTap,
+    onInspect,
+    onEdge,
+    onReady,
+    onHearts,
+    onBoss,
+    onLayout,
+    onBlood,
+    onStagesDone,
+    onBattleEnd,
+  };
+  const handlersRef = useRef(handlers);
   useEffect(() => {
-    swapRef.current = onSwap;
-  }, [onSwap]);
-  const tapRef = useRef(onTap);
-  useEffect(() => {
-    tapRef.current = onTap;
-  }, [onTap]);
-  const inspectRef = useRef(onInspect);
-  useEffect(() => {
-    inspectRef.current = onInspect;
-  }, [onInspect]);
-  const edgeRef = useRef(onEdge);
-  useEffect(() => {
-    edgeRef.current = onEdge;
-  }, [onEdge]);
-  const readyRef = useRef(onReady);
-  useEffect(() => {
-    readyRef.current = onReady;
-  }, [onReady]);
-  const heartsRef = useRef(onHearts);
-  useEffect(() => {
-    heartsRef.current = onHearts;
-  }, [onHearts]);
-  const bossRef = useRef(onBoss);
-  useEffect(() => {
-    bossRef.current = onBoss;
-  }, [onBoss]);
-  const layoutRef = useRef(onLayout);
-  useEffect(() => {
-    layoutRef.current = onLayout;
-  }, [onLayout]);
-  const bloodRef = useRef(onBlood);
-  useEffect(() => {
-    bloodRef.current = onBlood;
-  }, [onBlood]);
-  const stagesDoneRef = useRef(onStagesDone);
-  useEffect(() => {
-    stagesDoneRef.current = onStagesDone;
-  }, [onStagesDone]);
-  const battleEndRef = useRef(onBattleEnd);
-  useEffect(() => {
-    battleEndRef.current = onBattleEnd;
-  }, [onBattleEnd]);
+    handlersRef.current = handlers;
+  });
 
   useEffect(() => {
     const host = hostRef.current;
     if (host === null) return;
 
     const scene = new BoardScene();
-    scene.onSwap((from, to) => swapRef.current?.(from, to));
-    scene.onTap((at) => tapRef.current?.(at));
-    scene.onInspect((at) => inspectRef.current?.(at));
-    scene.onEdge((from, direction) => edgeRef.current?.(from, direction));
-    scene.onStagesDone(() => stagesDoneRef.current?.());
-    scene.onBlood((amount) => bloodRef.current?.(amount));
-    scene.onReady(() => readyRef.current?.());
-    scene.onLayout((layout) => layoutRef.current?.(layout));
-    scene.onBoss((hp) => bossRef.current?.(hp));
-    scene.onHearts((hearts) => heartsRef.current?.(hearts));
-    scene.onBattleEnd(() => battleEndRef.current?.());
+    scene.onSwap((from, to) => handlersRef.current.onSwap?.(from, to));
+    scene.onTap((at) => handlersRef.current.onTap?.(at));
+    scene.onInspect((at) => handlersRef.current.onInspect?.(at));
+    scene.onEdge((from, direction) => handlersRef.current.onEdge?.(from, direction));
+    scene.onStagesDone(() => handlersRef.current.onStagesDone?.());
+    scene.onBlood((amount) => handlersRef.current.onBlood?.(amount));
+    scene.onReady(() => handlersRef.current.onReady?.());
+    scene.onLayout((layout) => handlersRef.current.onLayout?.(layout));
+    scene.onBoss((hp) => handlersRef.current.onBoss?.(hp));
+    scene.onHearts((hearts) => handlersRef.current.onHearts?.(hearts));
+    scene.onBattleEnd(() => handlersRef.current.onBattleEnd?.());
     const handle = createGame(host, [scene]);
     sceneRef.current = scene;
 
