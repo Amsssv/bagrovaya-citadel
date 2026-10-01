@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { findMatches } from '@/entities/board';
 import { boardFrom } from '@/entities/board/__testing__/boardFrom';
 import { createCitadel, createNests } from '@/entities/citadel';
 import { createInventory } from '@/entities/item';
@@ -137,5 +138,26 @@ describe('выходной — день перестановки', () => {
     expect(next.purse.swaps).toBe(0);
     expect(next.night).toBe(11);
     expect(next.dayOff).toBeUndefined();
+  });
+  it('«Готово»: тройка, сложенная засыпкой, схлопывается — как каскад в обычный ход', () => {
+    // Три дыры в верхнем ряду, а досыпать нечем, кроме тумана: засыпка
+    // обязательно сложит тройку тумана. Раньше она так и оставалась лежать.
+    const holes = boardFrom(`
+      . . . s b t
+      s b a f s t
+      a t b a t s
+      t a P s f b
+      b s t a f a
+      f t a b s t
+    `);
+    // Каскады — как в игре (shared/config/balance.ts, cascadesEnabled).
+    const fogOnly = { ...options(), resources: ['fog'] as const, cascadesEnabled: true };
+    const { run, stages } = finishDayOff({ ...state(), board: holes }, fogOnly);
+    expect(findMatches(run.board)).toEqual([]);
+    expect(
+      run.board.cells.some((cell) => cell.kind === 'building' && cell.building === 'fogveil'),
+    ).toBe(true);
+    // Сцене — весь путь: засыпка, тройка, досыпка.
+    expect(stages.map((stage) => stage.kind)).toContain('reap');
   });
 });

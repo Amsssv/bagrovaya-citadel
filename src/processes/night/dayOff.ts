@@ -1,5 +1,5 @@
 import type { MoveStage } from '@/entities/board';
-import { settleAndRefill } from '@/entities/board';
+import { applyRefill } from '@/entities/board';
 
 import type { RunOptions, RunState } from './run';
 import { stepInTwilight } from './run';
@@ -73,36 +73,42 @@ export function stepDayOff(
 }
 
 /**
- * «Готово»: перестановка кончилась. Пустые клетки засыпаются — сцене отдаётся
- * шаг оседания, чтобы новые плитки упали, а не появились, — и кровь ночи
- * тратится до нуля: дальше рассвет, как после любой ночи (`runDawn`).
+ * «Готово»: перестановка кончилась. Пустые клетки засыпаются — сцене отдаются
+ * шаги, чтобы новые плитки упали, а не появились, — и кровь ночи тратится до
+ * нуля: дальше рассвет, как после любой ночи (`runDawn`). Засыпка может сложить
+ * тройку — она схлопывается, как каскад в обычный ход (`applyRefill`); раньше
+ * поле только засыпалось, и тройка так и лежала.
  */
 export function finishDayOff(
   state: RunState,
   options: RunOptions,
 ): { run: RunState; stages: MoveStage[] } {
-  const { board, fallen } = settleAndRefill(state.board, options.rng, options.resources);
+  const result = applyRefill(state.board, options);
+  // Первый шаг — пустой «ход»: на «Готово» игрок ничего не двигал.
+  const [, first, ...rest] = result.stages;
   // Новые плитки падают с высоты, а не на клетку-две: после выходного дыр
   // бывает немного, и короткое падение глаз не замечает. Карта — только для
-  // анимации, на поле это не влияет.
-  const from = new Map([...fallen].map(([index, distance]) => [index, distance + DROP_FROM]));
-  const settle: MoveStage = {
-    kind: 'settle',
-    board,
-    removed: [],
-    appeared: [],
-    moved: [],
-    fallen: from,
-    groups: [],
-  };
+  // анимации, на поле это не влияет. Каскад дальше падает как обычно.
+  const stages: MoveStage[] =
+    first === undefined
+      ? []
+      : [
+          {
+            ...first,
+            fallen: new Map(
+              [...first.fallen].map(([index, distance]) => [index, distance + DROP_FROM]),
+            ),
+          },
+          ...rest,
+        ];
   return {
     run: {
       ...state,
-      board,
+      board: result.board,
       dayOff: undefined,
       purse: { ...state.purse, swaps: 0, spent: state.purse.spent + state.purse.swaps },
     },
     // Шаг — даже если засыпать нечего: по его концу сцена зовёт рассвет.
-    stages: [settle],
+    stages,
   };
 }

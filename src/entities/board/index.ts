@@ -27,6 +27,7 @@ export {
   applyLift,
   applyPlacement,
   applyPotionOpen,
+  applyRefill,
   applySeal,
   applySwap,
   applyTeleport,

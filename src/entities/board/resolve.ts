@@ -291,6 +291,24 @@ export function applyEdgeDrop(
 }
 
 /**
+ * Засыпать дыры, которые оставил ход без досыпки, — «Готово» выходного. Всё
+ * оседает, пустое засыпается, и дальше обычный круг: досыпка может сложить
+ * тройку (это каскад — за `cascadesEnabled`), постройки — слиться.
+ */
+export function applyRefill(board: Board, options: ResolveOptions): MoveResult {
+  return resolveMove(
+    board,
+    {
+      preferred: [],
+      matchOnFirstRound: false,
+      settleFirst: true,
+      action: stage('action', board, {}),
+    },
+    { ...options, refill: true },
+  );
+}
+
+/**
  * Вскрытие потира (§8). Потир уходит, клетка закрывается досыпкой; сколько
  * свапов он дал — считает экономика по ступени из `tier`.
  */

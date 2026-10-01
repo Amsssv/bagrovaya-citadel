@@ -351,6 +351,18 @@ export class BoardScene extends Phaser.Scene {
   private readonly onField = new Map<string, Actor>();
   /** Линии выстрелов лозы и мортиры, пока гаснут. */
   private readonly beams = new Set<Phaser.GameObjects.Graphics>();
+  /**
+   * Вспышки мортиры и «−N ♥» над воротами, пока гаснут. Убирает их конец
+   * твина, а пропуск боя гасит твины без конца — их добирает `stopBattle`,
+   * иначе каждый пропуск оставлял их висеть на экране навсегда.
+   */
+  private readonly fading = new Set<Phaser.GameObjects.GameObject>();
+  /**
+   * Вечные пульсации подсветок (зона атаки, полоса босса). Заводятся один раз,
+   * поэтому пропуск их не гасит — иначе после первого пропуска подсветки
+   * переставали мигать до конца сессии.
+   */
+  private readonly pulses = new Set<Phaser.Tweens.Tween>();
   private battleTimers: Phaser.Time.TimerEvent[] = [];
   private battleGeneration = 0;
   private battleEndHandler: (() => void) | null = null;
@@ -571,6 +583,11 @@ export class BoardScene extends Phaser.Scene {
     };
   }
 
+  /** Завести вечную пульсацию — её пропуск боя не гасит. */
+  private pulse(config: Phaser.Types.Tweens.TweenBuilderConfig): void {
+    this.pulses.add(this.tweens.add(config));
+  }
+
   /**
    * Полоса босса: алый столбец под плитками и шевроны «вверх» под сеткой —
    * оттуда он выйдет. Только в Сумерках: на Рассвете он уже идёт сам.
@@ -588,7 +605,7 @@ export class BoardScene extends Phaser.Scene {
     if (this.zoneView === null) {
       // Под плитками, над полосой босса: плитки не перекрашиваются.
       this.zoneView = this.add.graphics().setDepth(-0.4);
-      this.tweens.add({
+      this.pulse({
         targets: this.zoneView,
         alpha: { from: 1, to: 0.55 },
         duration: 700,
@@ -624,7 +641,7 @@ export class BoardScene extends Phaser.Scene {
     if (this.laneView === null) {
       // Над картинкой поля, под плитками: плитки не перекрашиваются.
       this.laneView = this.add.graphics().setDepth(-0.5);
-      this.tweens.add({
+      this.pulse({
         targets: this.laneView,
         alpha: { from: 1, to: 0.45 },
         duration: 900,
@@ -869,7 +886,9 @@ export class BoardScene extends Phaser.Scene {
   /** Пропуск: показать итог немедленно. */
   skip(): void {
     this.generation++;
-    this.tweens.killAll();
+    for (const tween of this.tweens.getTweens()) {
+      if (!this.pulses.has(tween as Phaser.Tweens.Tween)) tween.remove();
+    }
     // Твин дня и ночи погиб вместе с остальными: свет встаёт сразу на место.
     this.daylightTween = null;
     this.daylight = this.daylightTarget;
@@ -1618,6 +1637,8 @@ export class BoardScene extends Phaser.Scene {
     this.numbers?.releaseAll();
     for (const beam of this.beams) beam.destroy();
     this.beams.clear();
+    for (const item of this.fading) item.destroy();
+    this.fading.clear();
   }
 
   /** Пропуск боя: показать итог немедленно. */
@@ -1878,13 +1899,17 @@ export class BoardScene extends Phaser.Scene {
       .setScale((layout.cellSize / this.atlas.cell) * 0.55)
       .setFlipX(left)
       .setDepth(3);
+    this.fading.add(flash);
     this.tweens.add({
       targets: flash,
       alpha: 0,
       scale: flash.scale * 1.4,
       duration: 180,
       ease: 'Quad.easeOut',
-      onComplete: () => flash.destroy(),
+      onComplete: () => {
+        this.fading.delete(flash);
+        flash.destroy();
+      },
     });
   }
 
@@ -2160,13 +2185,17 @@ export class BoardScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(7);
+    this.fading.add(label);
     this.tweens.add({
       targets: label,
       y: gate.y - layout.cellSize * 0.9,
       alpha: 0,
       duration: 900,
       ease: 'Quad.easeOut',
-      onComplete: () => label.destroy(),
+      onComplete: () => {
+        this.fading.delete(label);
+        label.destroy();
+      },
     });
   }
 
