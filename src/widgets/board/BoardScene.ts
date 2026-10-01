@@ -18,6 +18,7 @@ import { reportLoading } from '@/shared/ui';
 import type { BattleCue } from './battle';
 import { HIT_FLASH_MS, buildCues, hitFlashTint } from './battle';
 import { dragDirection } from './drag';
+import { filterFor } from './filter';
 import {
   BOARD_ART,
   BOARD_ART_URL,
@@ -658,8 +659,33 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Фильтр арта — под его масштаб на экране, в физических пикселях
+   * (shared/phaser/createGame: канвас плотнее CSS). Арт почти всегда мельче
+   * родного, и NEAREST его крошил — особенно на телефоне. Плитка воды — настоящий
+   * пиксель-арт и всегда крупнее родного: она остаётся NEAREST (ensureWaterTexture).
+   */
+  private applyFilters(layout: SceneLayout): void {
+    const density = 1 / this.scale.zoom;
+    const apply = (key: string, shown: number, native: number): void => {
+      if (!this.textures.exists(key)) return;
+      this.textures
+        .get(key)
+        .setFilter(
+          filterFor(shown, native) === 'linear'
+            ? Phaser.Textures.FilterMode.LINEAR
+            : Phaser.Textures.FilterMode.NEAREST,
+        );
+    };
+    // Картинки поля и предметы в воде — в точках картинки поля.
+    const field = layout.art.width * density;
+    for (const key of [BOARD_ART, CASTLE_ART, GATE_GRASS_ART, WATER_DECOR_ART])
+      apply(key, field, FIELD_SIZE.width);
+    if (this.atlas !== null) apply(ATLAS, layout.cellSize * density, this.atlas.cell);
+  }
+
   private redrawWater(layout: SceneLayout): void {
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     // Пиксель воды — в масштабе картинки поля, чтобы вода и поле были одной
     // крупности; и не мельче точки экрана.
     const pixel = Math.max(1, (WATER_PIXEL * layout.art.width) / FIELD_SIZE.width);
@@ -684,8 +710,8 @@ export class BoardScene extends Phaser.Scene {
       area: {
         x: -layout.art.x / scale,
         y: -layout.art.y / scale,
-        width: this.scale.width / scale,
-        height: this.scale.height / scale,
+        width: this.view.width / scale,
+        height: this.view.height / scale,
       },
       field: { x: 0, y: 0, ...FIELD_SIZE },
       frames: this.decorFrames,
@@ -715,7 +741,7 @@ export class BoardScene extends Phaser.Scene {
     const clouds = this.clouds;
     if (clouds === null) return;
     const bands = cloudBands(layout, board, clouds.cell);
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     for (const [layer, top] of [
       [clouds.back, bands.back],
       [clouds.front, bands.front],
@@ -877,8 +903,8 @@ export class BoardScene extends Phaser.Scene {
         this.bloodUndelivered++;
         // Капли встают рядком над группой, толчком, и только потом падают к шкале.
         const startX = x + (i - (amount - 1) / 2) * size * 0.34;
-        const endX = this.scale.width / 2 + (i - (amount - 1) / 2) * size * 0.3;
-        const endY = this.scale.height - 4;
+        const endX = this.view.width / 2 + (i - (amount - 1) / 2) * size * 0.3;
+        const endY = this.view.height - 4;
         const delay = BLOOD_LIFT_MS + i * BLOOD_STAGGER_MS;
         const drop = this.add
           .image(startX, y, BLOOD_DROP)
@@ -1314,8 +1340,9 @@ export class BoardScene extends Phaser.Scene {
       const layout = this.layout;
       if (board === null || layout === null) return;
 
-      this.dragFrom = screenToCell(layout, { x: pointer.x, y: pointer.y }, board);
-      this.dragStart = { x: pointer.x, y: pointer.y };
+      const at = this.pointAt(pointer);
+      this.dragFrom = screenToCell(layout, at, board);
+      this.dragStart = at;
       this.paintHeld();
       // Держат палец на клетке, не сдвигая, — показать, что это такое. Это
       // уже не тап и не свап: отпускание после осмотра ничего не делает.
@@ -1338,7 +1365,7 @@ export class BoardScene extends Phaser.Scene {
       const start = this.dragStart;
       if (board === null || from === null || start === null || !pointer.isDown) return;
 
-      const direction = dragDirection(start, { x: pointer.x, y: pointer.y });
+      const direction = dragDirection(start, this.pointAt(pointer));
       if (direction === null) return;
 
       const to = step(from, direction);
@@ -1360,6 +1387,15 @@ export class BoardScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.GAME_OUT, () => {
       this.releaseDrag();
     });
+  }
+
+  /**
+   * Где палец — в CSS-пикселях сцены. Экранные `pointer.x/y` — в физических
+   * пикселях канваса, а камера увеличена на его плотность.
+   */
+  private pointAt(pointer: Phaser.Input.Pointer): { x: number; y: number } {
+    const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+    return { x: world.x, y: world.y };
   }
 
   private cancelHold(): void {
@@ -2433,12 +2469,24 @@ export class BoardScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Экран в CSS-пикселях — в них сцена и считает. Канвас плотнее в
+   * `1 / scale.zoom` раз (shared/phaser/createGame), и камера увеличена на ту
+   * же плотность: арт рисуется в физических пикселях, а раскладка и интерфейс
+   * поверх живут в CSS.
+   */
+  private get view(): { readonly width: number; readonly height: number } {
+    const zoom = this.scale.zoom;
+    return { width: this.scale.width * zoom, height: this.scale.height * zoom };
+  }
+
   private redraw(): void {
     const board = this.board;
     if (board === null) return;
 
+    this.cameras.main.setOrigin(0, 0).setZoom(1 / this.scale.zoom);
     const layout = computeSceneLayout({
-      viewport: { width: this.scale.width, height: this.scale.height },
+      viewport: this.view,
       board,
       art: { ...FIELD_SIZE, inset: BOARD_GRID_INSET },
       reserveBottom: this.reserveBottom,
@@ -2453,6 +2501,7 @@ export class BoardScene extends Phaser.Scene {
 
     this.boardArt?.setPosition(layout.art.x, layout.art.y);
     this.boardArt?.setDisplaySize(layout.art.width, layout.art.height);
+    this.applyFilters(layout);
     this.redrawWater(layout);
     this.redrawClouds(layout, board);
     // Замок и трава — по пикселям картинки поля, в её масштабе.

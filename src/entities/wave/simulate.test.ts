@@ -201,13 +201,76 @@ describe('туман замедляет (§4)', () => {
     const paces = events.flatMap((event) => (event.type === 'pace' ? [event] : []));
     expect(paces.map((event) => event.factor < 1)).toEqual([true, false]);
     // Держит в клетке завесы (ряд 2): вход — у её нижнего края, выход — сразу
-    // за верхним, в пределах одного тика.
+    // за верхним. Координата снята после шага тика, поэтому — в пределах
+    // одного шага (2 клетки/с × 50 мс = 0,1 клетки) за краем.
     const [enter, leave] = paces;
     expect(enter?.y).toBeLessThanOrEqual(2.5);
-    expect(enter?.y).toBeGreaterThan(2.4);
+    expect(enter?.y).toBeGreaterThan(2.3);
     expect(leave?.y).toBeLessThan(1.5);
-    expect(leave?.y).toBeGreaterThan(1.4);
+    expect(leave?.y).toBeGreaterThan(1.3);
     expect((paces[0]?.at ?? 0) < (paces[1]?.at ?? 0)).toBe(true);
+  });
+
+  it('между событиями с координатой охотник не обгоняет свой шаг — и на выходе из тумана', () => {
+    // Сцена ведёт спрайт линейно от одной координаты к следующей. Если события
+    // снимают координату в разные моменты тика, за выходом из полосы тумана
+    // спрайт на миг шёл вдвое быстрее.
+    const oneFog = boardFrom(`
+      s t a
+      t a s
+      a W t
+      s t a
+      t a s
+    `);
+    const { events } = simulateNight(
+      state(oneFog),
+      wave({ id: 'h1', kind: 'crawler', column: 1, atSecond: 0 }),
+      options({
+        buildings: { ...BUILDINGS, fogveil: { ...BUILDINGS.fogveil, slowZone: [0.1, 0.6] } },
+      }),
+    );
+    const marks = events.flatMap((event) =>
+      (event.type === 'move' || event.type === 'pace' || event.type === 'leak') && event.id === 'h1'
+        ? [{ at: event.at, y: event.y }]
+        : [],
+    );
+    for (let i = 1; i < marks.length; i++) {
+      const [a, b] = [marks[i - 1], marks[i]] as [
+        { at: number; y: number },
+        { at: number; y: number },
+      ];
+      // В один и тот же миг охотник стоит в одной точке.
+      if (b.at === a.at) {
+        expect(b.y).toBeCloseTo(a.y, 6);
+        continue;
+      }
+      const speed = ((a.y - b.y) / (b.at - a.at)) * 1000;
+      expect(speed).toBeLessThanOrEqual(1.1);
+    }
+  });
+
+  it('одиночная завеса держит только в своей полосе, как в оригинале', () => {
+    const oneFog = boardFrom(`
+      s t a
+      t a s
+      a W t
+      s t a
+      t a s
+    `);
+    const { events } = simulateNight(
+      state(oneFog),
+      wave({ id: 'h1', kind: 'crawler', column: 1, atSecond: 0 }),
+      options({
+        buildings: { ...BUILDINGS, fogveil: { ...BUILDINGS.fogveil, slowZone: [0.1, 0.6] } },
+      }),
+    );
+    const paces = events.flatMap((event) => (event.type === 'pace' ? [event] : []));
+    const [enter, leave] = paces;
+    // Полоса ряда 2 — y от 1,6 до 2,1: вход у 2,1, выход у 1,6.
+    expect(enter?.y).toBeLessThanOrEqual(2.1);
+    expect(enter?.y).toBeGreaterThan(2.0);
+    expect(leave?.y).toBeLessThanOrEqual(1.6);
+    expect(leave?.y).toBeGreaterThan(1.5);
   });
 
   it('без тумана событий темпа нет', () => {

@@ -444,11 +444,14 @@ export function simulateNight(
       const spec = statsAt(enemySpec(options.enemies, hunter.kind), state.night);
       const before = cellOf(hunter, board.height);
       const pace = slowAt(board, options.buildings, hunter.column, hunter.y);
+      hunter.y -= spec.speed * pace * dt;
+      // Координата — после шага, как у `move` и `leak`: сцена ведёт спрайт
+      // линейно между ними, и снятая до шага давала на выходе из тумана рывок
+      // вдвое быстрее шага (заметно между двумя завесами).
       if (pace !== hunter.pace) {
         hunter.pace = pace;
         events.push({ type: 'pace', at, id: hunter.id, y: hunter.y, factor: pace });
       }
-      hunter.y -= spec.speed * pace * dt;
 
       if (hunter.y < 0) {
         // Дошёл босс со свитой внутри — ворота получают и за него, и за всю
