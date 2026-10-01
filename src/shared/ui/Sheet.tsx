@@ -15,10 +15,14 @@ import styles from './Sheet.module.scss';
  * мимо панели и клавишей Escape. Фокус при открытии уходит в панель, при
  * закрытии возвращается туда, откуда её открыли, — иначе с клавиатуры после
  * закрытия теряешься.
+ *
+ * Без `onClose` панель не закрывается ничем, кроме своих кнопок: ни крестика,
+ * ни подложки, ни Escape. Для решений, которые нельзя пропустить случайным
+ * касанием.
  */
 export interface SheetProps {
   readonly title: string;
-  readonly onClose: () => void;
+  readonly onClose?: (() => void) | undefined;
   readonly children: ReactNode;
   /** Кнопки под содержимым: не прокручиваются вместе с ним. */
   readonly footer?: ReactNode;
@@ -33,7 +37,7 @@ export function Sheet({ title, onClose, children, footer }: SheetProps) {
     panel.current?.focus();
 
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKey);
 
@@ -48,7 +52,7 @@ export function Sheet({ title, onClose, children, footer }: SheetProps) {
       className={styles.backdrop}
       onPointerDown={(event) => {
         // Только по самой подложке: нажатие внутри панели не должно её закрыть.
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) onClose?.();
       }}
     >
       <section
@@ -63,14 +67,16 @@ export function Sheet({ title, onClose, children, footer }: SheetProps) {
           <h2 className={styles.title} id={titleId}>
             {title}
           </h2>
-          <button
-            className={styles.close}
-            type="button"
-            aria-label={t('common.close')}
-            onClick={onClose}
-          >
-            <Icon name="close" />
-          </button>
+          {onClose !== undefined && (
+            <button
+              className={styles.close}
+              type="button"
+              aria-label={t('common.close')}
+              onClick={onClose}
+            >
+              <Icon name="close" />
+            </button>
+          )}
         </header>
 
         <div className={styles.body}>{children}</div>

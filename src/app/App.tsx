@@ -213,8 +213,6 @@ export function App({ platform }: AppProps) {
   const [clearToken, setClearToken] = useState(0);
   /** Кровь за длинный матч, которая ещё летит к шкале: шкала её пока не показывает. */
   const [bloodInFlight, setBloodInFlight] = useState(0);
-  /** Итог забега закрыли, чтобы посмотреть на поле. */
-  const [overDismissed, setOverDismissed] = useState(false);
   const [hidden, setHidden] = useState(false);
   // Пауза — как в matching-game, из трёх независимых источников: вкладка
   // скрыта, идёт наша реклама, площадка сама открыла своё окно
@@ -796,7 +794,6 @@ export function App({ platform }: AppProps) {
     const next = giveUp(runRef.current);
     runRef.current = next;
     setRun(next);
-    setOverDismissed(false);
   }, []);
 
   const handleInspect = useCallback((at: Position) => {
@@ -922,7 +919,6 @@ export function App({ platform }: AppProps) {
     setView({ board: next.run.board, stages: [], deal: true });
     afterDawnRef.current = null;
     setAfterDawn(null);
-    setOverDismissed(false);
     setBloodInFlight(0);
     setClearToken((token) => token + 1);
   }, [gate, level.id, setBeat, setHistory]);
@@ -941,7 +937,6 @@ export function App({ platform }: AppProps) {
     setView({ board: next.run.board, stages: [], deal: next.fresh });
     afterDawnRef.current = null;
     setAfterDawn(null);
-    setOverDismissed(false);
     setBloodInFlight(0);
     setClearToken((token) => token + 1);
     const { settings } = next.save;
@@ -997,10 +992,6 @@ export function App({ platform }: AppProps) {
     void fullscreenIfDue().then(restartNow);
   }, [fullscreenIfDue, restartNow]);
 
-  const closeRunOver = useCallback(() => {
-    setOverDismissed(true);
-  }, []);
-
   // Ремонт цитадели за ролик — один раз за сессию: пала повторно — ролика уже
   // нет. После ремонта забег идёт дальше со следующей ночи, как будто замок
   // устоял.
@@ -1015,7 +1006,6 @@ export function App({ platform }: AppProps) {
         const repaired = repairCitadel(runRef.current, CITADEL_CONFIG.startHearts);
         runRef.current = repaired;
         setRun(repaired);
-        setOverDismissed(false);
         setHistory(openNight(repaired, refillRng));
         // Со стен смываем, кто остался с проигранного боя: ночь начинается заново.
         setClearToken((token) => token + 1);
@@ -1253,11 +1243,8 @@ export function App({ platform }: AppProps) {
         </BoardView>
 
         <footer className={styles.footer} ref={footerRef}>
-          {over ? (
-            <button className={styles.restart} type="button" onClick={restart}>
-              {t('app.startOver')}
-            </button>
-          ) : (
+          {/* Забег окончен — подвал пуст: всё решается в итоговой панели. */}
+          {over ? null : (
             <>
               {notice !== null && (
                 <div className={styles.notice} key={notice.key} role="status">
@@ -1293,7 +1280,7 @@ export function App({ platform }: AppProps) {
           <RecordsPanel view={records} onSignIn={handleSignIn} onClose={closeRecords} />
         )}
 
-        {over && !overDismissed && (
+        {over && (
           <RunOverPanel
             nights={current.nights}
             score={current.score}
@@ -1305,7 +1292,6 @@ export function App({ platform }: AppProps) {
             }
             repairing={repairing}
             onRestart={restart}
-            onClose={closeRunOver}
           />
         )}
 

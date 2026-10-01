@@ -8,8 +8,9 @@ import styles from './RunOverPanel.module.scss';
  *
  * Главное действие одно — начать заново здесь же, в той же цитадели. Смена
  * цитадели — второе: чаще всего после поражения хотят реванша, а не выбора.
- * Панель можно закрыть и посмотреть на поле; кнопка «Начать заново» останется
- * внизу экрана.
+ * Закрыть панель нельзя — только починить цитадель или начать заново:
+ * закрытие касанием мимо панели отнимало ремонт за ролик, а вернуть панель
+ * было нечем.
  */
 export interface RunOverPanelProps {
   readonly nights: number;
@@ -25,7 +26,6 @@ export interface RunOverPanelProps {
   readonly onRestart: () => void;
   /** Выбор другой цитадели; нет — кнопки нет (пока цитадель одна). */
   readonly onPickCitadel?: (() => void) | undefined;
-  readonly onClose: () => void;
 }
 
 export function RunOverPanel({
@@ -36,12 +36,10 @@ export function RunOverPanel({
   repairing = false,
   onRestart,
   onPickCitadel,
-  onClose,
 }: RunOverPanelProps) {
   return (
     <Sheet
       title={t('runOver.theCitadelHasFallen')}
-      onClose={onClose}
       footer={
         <>
           {onRepair !== undefined && (
