@@ -1,0 +1,351 @@
+{
+  "app": {
+    "tooLateTheOrder": "Too late — the Order is coming!",
+    "youCanUndoOnly": "You can undo only if no new tiles fell in after the move",
+    "citadelHearts": "Citadel hearts",
+    "hearts": "Hearts",
+    "night": "Night",
+    "chronicle": "Chronicle",
+    "giveUp": "Give up",
+    "howToPlay": "How to play",
+    "askBeforeThrowingA": "Ask before throwing a building away",
+    "thePreacherComesTonight": "The Preacher comes tonight!",
+    "battleSpeed": "Battle speed",
+    "skipBattle": "Skip battle",
+    "undoMove": "Undo move",
+    "startOver": "Start over",
+    "throwTheBuildingAway": "Throw the building away?",
+    "itWillBeGone": "It will be gone from the board. Like any move, this costs a drop of blood.",
+    "throwAway": "Throw away",
+    "keepIt": "Keep it",
+    "theRunEndsNow": "The run ends now and your record is saved. You cannot repair the citadel with a video after that.",
+    "keepPlaying": "Keep playing",
+    "crimsonCitadel": "Crimson Citadel",
+    "loading": "Loading",
+    "giveUpTitle": "Give up?",
+    "preacherIn": "The Preacher in {count} {nights}",
+    "victory": {
+      "title": "The Preacher has fallen! Dawn {night} survived",
+      "text": "Well done! Keep building your defence: the next Preacher, stronger than the last, comes on night {next}.",
+      "points": "+{points} points",
+      "lastTitle": "The Order is broken!",
+      "lastText": "All five preachers are defeated. Next the Order sends paladins — how many more nights will the citadel hold?"
+    }
+  },
+  "guide": {
+    "eachTileTurnsInto": "Each tile turns into one thing only. Three in a row — and here is what you get:",
+    "fromThree": "From three",
+    "fourOrMoreIn": "Four or more in a row still make one building, but they give blood back: four return a drop, five return two, and so on. Matches that form on their own after the refill count too.",
+    "comboIfOneMove": "Combo: if one move makes three or more matches and merges — counting the ones that form on their own — you get a drop, plus a drop for each one after.",
+    "threeOrMoreIdentical": "Three or more identical buildings of the same tier in a horizontal or vertical row merge into one, a tier higher. A corner of three does not merge; lines meeting in one cell merge as a whole.",
+    "aLongMergeGives": "A long merge gives blood back: for each building beyond three — 3 drops for Raw, 9 for Bone, 27 for Obsidian. Chalices give even more.",
+    "mergingCostsSpaceThree": "Merging costs space. Three buildings covered three cells, one covers just one: it is stronger but guards less. While enemies are few, a long line of weak buildings works better; for the boss you need the top tiers.",
+    "withEachTierA": "With each tier a gargoyle hits not harder but more often: a Crimson one fires almost fourteen times faster than a Raw one.",
+    "chalicesClimbTheSame": "Chalices climb the same ladder, and each tier holds many times more blood than the one before. Merge them and drink them before the boss.",
+    "aHunterWalksStraight": "A hunter walks straight up its column. It neither goes around buildings nor breaks them — it walks right through.",
+    "soYouCannotBuild": "So you cannot build a maze. Fog buys time, not distance: the lower it stands, the longer your buildings get to shoot.",
+    "soldiersMarchInA": "Soldiers march in a column, more of them and faster every night. Each hit knocks a soldier back a little; the Preacher does not budge.",
+    "thePreacher": "The Preacher",
+    "onABossNight": "On a boss night the lane he will take is highlighted during Dusk: build up your defence in that column in time. Fog lined up with your firepower keeps him under fire for longer.",
+    "citadelTowers": "Citadel towers",
+    "twoTowersStandAbove": "Two towers stand above the outer columns. Drag a gargoyle from a top corner of the board up into the wall — it costs a drop of blood. From the tower it hits two cells in every direction, right where enemies reach the gate.",
+    "anOccupiedTowerOnly": "An occupied tower only takes a gargoyle of a higher tier — the old one is lost. Against the Preacher you need the top tiers.",
+    "howToPlay": "How to play",
+    "helpSections": "Help sections",
+    "preacherComes": "Comes alone on nights {nights}, slower than soldiers, each one stronger than the last. When he falls, his flock bursts out of him — a squad of soldiers. If he reaches the gate, he strikes for himself and for his whole flock inside.",
+    "tabs": {
+      "night": "Night",
+      "matches": "Matches",
+      "tiers": "Tiers",
+      "enemies": "Enemies"
+    },
+    "night": {
+      "lead": "You are a vampire, Lord Morten. The Order of Dawn is besieging your citadel, and by day you sleep. Build your defence during the night: at dawn it will fight without you.",
+      "duskTitle": "Dusk",
+      "duskMoves": "Each night you have {count} {drops} of blood. Drag a tile onto a neighbouring cell — they swap places, and one drop is spent. Three identical tiles in a row become a building.",
+      "duskOptional": "A match is optional: a swap can simply move a finished building to where it is needed more.",
+      "dawnTitle": "Dawn",
+      "dawnBattle": "When the blood runs out, dawn comes by itself. Hunters come from below and march up to the gate while your buildings open fire. Each one that gets through takes hearts from the citadel.",
+      "dawnAfter": "After the battle the blood refills: {count} {drops} again. Out of hearts — the citadel has fallen. Once per session you can repair it by watching a video; otherwise the run starts over.",
+      "placement": "The building appears where you moved the tile. If the match is vertical, the building drops down to the first free cell.",
+      "undo": "You can undo with the arrow button at the top right, under the battle speed — several moves in a row — until new tiles fall in. Once they have, the move is final.",
+      "taps": "Tap a chalice to drink it — the blood is added at once. Hold your finger on any cell to see what it is and how it works."
+    },
+    "dayOffTitle": "Day off",
+    "dayOffText": "Once per run, after a Preacher night — on night 11, 21, 31 — you can take a day off: moves are free and unlimited, but no new tiles drop in and chalices can’t be drunk. Anything above an empty cell falls down. Press “Done” when everything is in place — the gaps fill up and dawn breaks, as after any night."
+  },
+  "runOver": {
+    "theCitadelHasFallen": "The citadel has fallen",
+    "video": "Video…",
+    "repairTheCitadelWatch": "Repair the citadel — watch a video",
+    "startOver": "Start over",
+    "chooseAnotherCitadel": "Choose another citadel",
+    "nights": "Nights",
+    "score": "Score",
+    "score100PerNight": "Score: 100 per night, 1000 per Preacher, 1 per enemy, plus the buildings on the board on the last night — the higher the tier, the more they are worth.",
+    "oncePerSessionThe": "Once per session the citadel can be repaired: its hearts return to the start, and the nights go on.",
+    "lead": "The Order of Dawn has broken into the citadel. Here is how long it held out.",
+    "newRecord": "New record!"
+  },
+  "records": {
+    "chronicle": "Chronicle",
+    "signInToEnter": "Sign in to enter the chronicle",
+    "yourBest": "Your best",
+    "thePlatformIsUnavailable": "The platform is unavailable — records are kept on this device.",
+    "theChronicleIsEmpty": "The chronicle is empty so far. Survive a night and be the first."
+  },
+  "settings": {
+    "settings": "Settings",
+    "soundOff": "Sound off",
+    "soundOn": "Sound on",
+    "music": "Music",
+    "effects": "Effects"
+  },
+  "picker": {
+    "citadels": "Citadels",
+    "youAreHere": "You are here",
+    "best": "Best",
+    "action": {
+      "start": "Play",
+      "restart": "Start over",
+      "abandon": "Abandon run and switch"
+    }
+  },
+  "common": {
+    "gotIt": "Got it",
+    "close": "Close",
+    "and": "and",
+    "locale": "en-US"
+  },
+  "boss": {
+    "thePreacher": "The Preacher",
+    "reminder": {
+      "title": "The Preacher comes tonight",
+      "first": "The lane he will take is highlighted. Fortify it before dawn: if he reaches the gate, he strikes for his whole flock too.",
+      "stronger": "He is stronger than the last one: {hp} hit points. The lane he will take is highlighted — fortify it before dawn."
+    }
+  },
+  "blood": {
+    "blood": "Blood",
+    "caption": {
+      "dawn": "Dawn",
+      "last": "Last drop",
+      "left": "{count} {drops} until dawn"
+    }
+  },
+  "ads": {
+    "video": "Video…"
+  },
+  "lang": {
+    "language": "Language"
+  },
+  "plural": {
+    "nights": {
+      "one": "night",
+      "other": "nights"
+    },
+    "drops": {
+      "one": "drop",
+      "other": "drops"
+    },
+    "points": {
+      "one": "point",
+      "other": "points"
+    }
+  },
+  "names": {
+    "tile": {
+      "stone": "Gravestone",
+      "thorn": "Poison thorn",
+      "ash": "Ancestral ash",
+      "fog": "Grave fog",
+      "blood": "Blood"
+    },
+    "building": {
+      "gargoyle": "Gargoyle",
+      "vine": "Predatory vine",
+      "mortar": "Ash mortar",
+      "fogveil": "Fog veil",
+      "potion": "Blood chalice"
+    }
+  },
+  "roles": {
+    "gargoyle": "Shoots enemies in its own and neighbouring cells — the closest first, finishing off the wounded. Keep it off the edge, or half its shots go off the board.",
+    "vine": "Hits along its whole column, up and down, through buildings — whoever is closest to it vertically.",
+    "mortar": "Hits along its whole row through buildings — the closest enemy on either side: it turns to face them by itself.",
+    "fogveil": "Deals no damage but slows the hunter while it crosses the middle of its cell. Next to vines, it buys them extra shots.",
+    "potion": "Doesn't shoot — it stores blood. Tap the chalice to drink it: it vanishes and your blood goes up. Swipe it around like any tile."
+  },
+  "tiers": {
+    "building": {
+      "raw": "Raw",
+      "bone": "Bone",
+      "obsidian": "Obsidian",
+      "crimson": "Crimson"
+    },
+    "potion": {
+      "raw": "Raw",
+      "bone": "Bone",
+      "obsidian": "Obsidian",
+      "crimson": "Crimson"
+    }
+  },
+  "cell": {
+    "tileMakes": "Three in a row make: {name}.",
+    "potionTitle": "{tier} chalice",
+    "potionHolds": "Holds {count} {drops} of blood",
+    "slows": "Slows by {percent}%",
+    "damage": "Damage {damage} · {rate} shots/s",
+    "buildingTitle": "{name} · {tier}"
+  },
+  "tutorial": {
+    "beat": {
+      "stone": {
+        "title": "The Order of Dawn is coming!",
+        "text": "Drag the stone up — three stones in a row become a gargoyle."
+      },
+      "gargoyle": {
+        "title": "Gargoyle",
+        "text": "At dawn it shoots enemies in its own and neighbouring cells on its own."
+      },
+      "drops": {
+        "title": "Blood is your moves",
+        "text": "Every move costs one drop of blood, five per night — see the meter below. When the blood runs out, dawn comes."
+      },
+      "tower": {
+        "title": "Castle tower",
+        "text": "The gargoyle in the top corner stands under a tower. Drag it up into the wall — it will climb into the tower."
+      },
+      "towered": {
+        "title": "Gargoyle in the tower",
+        "text": "From the tower it hits two cells away in every direction for the rest of the run. An occupied tower only takes a gargoyle one tier higher."
+      },
+      "thorn": {
+        "title": "Three thorns",
+        "text": "Drag the thorn up — a predatory vine will grow."
+      },
+      "vine": {
+        "title": "Predatory vine",
+        "text": "Hits up and down its whole column, through buildings."
+      },
+      "ash": {
+        "title": "Three ashes",
+        "text": "Drag the ash up — an ash mortar will rise."
+      },
+      "mortar": {
+        "title": "Ash mortar",
+        "text": "Hits along its row — the closest enemy on either side: it turns to face them by itself."
+      },
+      "blood": {
+        "title": "Three drops of blood",
+        "text": "Drag the blood up — a blood chalice will appear."
+      },
+      "potion": {
+        "title": "Blood chalice",
+        "text": "It stores blood for later — drink it when you run low. Three chalices in a row merge into a bigger one that holds much more."
+      },
+      "drink": {
+        "title": "Drink the chalice",
+        "text": "Tap the chalice — your blood goes up."
+      },
+      "merge": {
+        "title": "Merging",
+        "text": "Two gargoyles stand below. Drag the stone down — a third one will join them."
+      },
+      "merged": {
+        "title": "Bone gargoyle",
+        "text": "Three identical buildings in a row merge into one, a tier higher. It shoots much faster."
+      },
+      "fog": {
+        "title": "Four in a row",
+        "text": "Drag the fog up — you will line up four at once."
+      },
+      "fogveil": {
+        "title": "Fog veil",
+        "text": "Deals no damage but slows hunters down. And four in a row gave a drop of blood back."
+      },
+      "move": {
+        "title": "Buildings can be moved",
+        "text": "Move the vine down — buildings move just like tiles."
+      },
+      "undo": {
+        "title": "Changed your mind?",
+        "text": "The arrow button undoes a move and returns the blood — until new tiles fall in."
+      },
+      "drop": {
+        "title": "Drop off the edge",
+        "text": "A spare tile can be thrown away: drag it down, off the board. That costs a drop too."
+      },
+      "dawn": {
+        "title": "Out of blood — dawn",
+        "text": "Order hunters come from below and march to the gate. Your buildings shoot on their own — watch."
+      },
+      "battle": {
+        "title": "Dawn",
+        "text": "Each one that reaches the gate takes a heart from the citadel."
+      },
+      "end": {
+        "title": "The night is held!",
+        "text": "From now on you are on your own. More hunters come every night, and the Preacher arrives on night 10. Help is behind the \"?\" button."
+      }
+    },
+    "tip": {
+      "gargoyle": {
+        "title": "Gargoyle",
+        "text": "Shoots enemies in its own and neighbouring cells. Keep it off the edge, or half its shots go to waste."
+      },
+      "vine": {
+        "title": "Predatory vine",
+        "text": "Hits up and down its whole column, through buildings."
+      },
+      "mortar": {
+        "title": "Ash mortar",
+        "text": "Hits the closest enemy along its row on either side — it turns to face them by itself."
+      },
+      "fogveil": {
+        "title": "Fog veil",
+        "text": "Deals no damage but slows hunters, so your other buildings get more shots."
+      },
+      "potion": {
+        "title": "Blood chalice",
+        "text": "Stores blood. Tap it to drink. Three chalices in a row merge into a bigger one that holds much more."
+      },
+      "turret": {
+        "title": "Castle tower",
+        "text": "A gargoyle in a top corner can go up into a tower: drag it up into the wall. From there it hits two cells away."
+      }
+    }
+  },
+  "bonus": {
+    "combo": {
+      "c1": "Great combo!",
+      "c2": "Awesome combo!",
+      "c3": "Amazing combo!",
+      "c4": "Glorious combo!"
+    },
+    "bigMerge": "Big merge!",
+    "detail": "+{count} blood {drops}"
+  },
+  "levels": {
+    "crimson": {
+      "name": "Crimson",
+      "hint": "The base: six columns, standard economy"
+    },
+    "hungry-night": {
+      "name": "Hungry Night",
+      "hint": "No chalices on the board — you play on your starting reserve"
+    },
+    "ash-crypt": {
+      "name": "Ash Crypt",
+      "hint": "Built for mortars — this is where records are set"
+    }
+  },
+  "dayOff": {
+    "title": "Take a day off?",
+    "text": "The castle workers will help you rearrange the whole board: moves are free and unlimited, but no new tiles will drop in and chalices can’t be drunk. Press “Done” and the gaps fill up and dawn breaks: enemies march on the rearranged board. You get one day off per run.",
+    "take": "Take the day off",
+    "skip": "No, thanks",
+    "caption": "Day off: move anything you like",
+    "done": "Done"
+  }
+}

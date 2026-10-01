@@ -1,0 +1,23 @@
+{
+  "verified": false,
+  "levels": [
+    {
+      "id": "crimson",
+      "name": "Багровая",
+      "hint": "База: шесть столбцов, обычная экономика",
+      "leaderboard": "bestScore"
+    },
+    {
+      "id": "hungry-night",
+      "name": "Голодная ночь",
+      "hint": "Потиров на поле нет — играешь на стартовом запасе",
+      "leaderboard": "hungryNightScore"
+    },
+    {
+      "id": "ash-crypt",
+      "name": "Крипта Праха",
+      "hint": "Заточена под мортиры — здесь набирают рекорды",
+      "leaderboard": "ashCryptScore"
+    }
+  ]
+}

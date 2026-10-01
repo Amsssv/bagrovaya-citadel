@@ -1,0 +1,21 @@
+// Ночь — сама подложка, день ложится поверх и проявляется прозрачностью.
+.water,
+.waterDay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--water-night);
+  pointer-events: none;
+}
+
+.day {
+  position: absolute;
+  inset: 0;
+  background: var(--water-day);
+  opacity: 0;
+  transition: opacity var(--water-ms) ease-in-out;
+}
+
+.waterDay .day {
+  opacity: 1;
+}

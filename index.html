@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Багровая Цитадель</title>
+    <!--
+      Экран загрузки рисуется сам, до бандла: игра весит мегабайты, а игрок
+      должен видеть цитадель с первого кадра, а не чёрный экран. Поэтому здесь
+      всё встроено — стили, разметка и маленький скрипт управления. Шрифт
+      заголовка лежит в public/fonts, чтобы не ждать бандла.
+    -->
+    <link rel="preload" href="./fonts/cormorant-sc-cyrillic-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="./fonts/IndiraK.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* Знак Allegra — тот же, что в других играх Allegra: Indira K и золото. */
+      @font-face {
+        font-family: 'Indira K';
+        font-display: swap;
+        src: url('./fonts/IndiraK.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Cormorant SC Loader';
+        font-weight: 700;
+        font-display: swap;
+        src: url('./fonts/cormorant-sc-cyrillic-700-normal.woff2') format('woff2');
+        unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+      }
+      @font-face {
+        font-family: 'Cormorant SC Loader';
+        font-weight: 700;
+        font-display: swap;
+        src: url('./fonts/cormorant-sc-latin-700-normal.woff2') format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+      }
+      html, body { margin: 0; background: #170b1c; }
+      #app-loader {
+        position: fixed; inset: 0; z-index: 9999; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        color: #efe4ea;
+        background:
+          radial-gradient(ellipse 50% 32% at 50% 6%, rgba(160, 150, 255, 0.16), transparent 70%),
+          radial-gradient(ellipse 90% 50% at 50% 100%, rgba(110, 24, 60, 0.28), transparent 70%),
+          linear-gradient(180deg, #0c0a22 0%, #170f30 40%, #22102e 75%, #190b1f 100%);
+        transition: opacity 360ms ease-out;
+      }
+      #app-loader.app-loader--hide { opacity: 0; pointer-events: none; }
+      /* Звёзды — те же две сетки, что и на небе игры: переход в игру без шва. */
+      #app-loader .app-loader__stars {
+        position: absolute; inset: 0; opacity: 0.7;
+        background-image:
+          radial-gradient(1px 1px at 23px 41px, rgba(255, 255, 255, 0.8), transparent),
+          radial-gradient(1px 1px at 131px 97px, rgba(255, 255, 255, 0.6), transparent),
+          radial-gradient(1.5px 1.5px at 77px 173px, rgba(220, 210, 255, 0.85), transparent),
+          radial-gradient(1px 1px at 191px 23px, rgba(255, 255, 255, 0.5), transparent),
+          radial-gradient(1px 1px at 59px 211px, rgba(255, 255, 255, 0.55), transparent),
+          radial-gradient(1.5px 1.5px at 157px 239px, rgba(255, 240, 250, 0.7), transparent);
+        background-size: 211px 229px, 211px 229px, 211px 229px, 307px 283px, 307px 283px, 307px 283px;
+        -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 35%, transparent 80%);
+        mask-image: linear-gradient(180deg, #000 0%, #000 35%, transparent 80%);
+        animation: app-loader-twinkle 4s ease-in-out infinite alternate;
+      }
+      /* Туман снизу — тот же, что под полем в игре: две полосы атласа
+         (public/loader/, их пишет scripts/build-atlas.py), ниже — их цвет. */
+      #app-loader .app-loader__fog {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        image-rendering: pixelated; pointer-events: none;
+        animation: app-loader-drift 60s linear infinite;
+      }
+      #app-loader .app-loader__fog--back {
+        height: 21vh;
+        background:
+          url('./loader/fog-back.png') repeat-x 0 0 / auto 96px,
+          linear-gradient(transparent 94px, #5d448e 94px);
+      }
+      #app-loader .app-loader__fog--front {
+        height: calc(21vh - 34px);
+        background:
+          url('./loader/fog-front.png') repeat-x 0 0 / auto 73px,
+          linear-gradient(transparent 71px, #c2aee3 71px);
+        animation-name: app-loader-drift-front; animation-duration: 40s;
+      }
+      /* Сдвиг — ровно на ширину плитки полосы, чтобы цикл был без рывка. */
+      @keyframes app-loader-drift { to { background-position-x: 393.5px, 0; } }
+      @keyframes app-loader-drift-front { to { background-position-x: 206px, 0; } }
+      #app-loader .app-loader__center {
+        position: relative; display: flex; flex-direction: column; align-items: center;
+        gap: 18px; padding: 0 16px; text-align: center;
+      }
+      #app-loader .app-loader__title {
+        margin: 0 0 clamp(8px, 4vh, 36px);
+        font-family: 'Cormorant SC Loader', Georgia, serif; font-weight: 700;
+        font-size: clamp(38px, 11vw, 84px); line-height: 1; letter-spacing: 0.03em;
+        text-shadow: 0 0 28px rgba(214, 51, 74, 0.45), 0 2px 0 rgba(20, 4, 10, 0.7);
+      }
+      /* Капля наливается снизу — так же, как кровь на шкале в игре. */
+      #app-loader .app-loader__drop { width: 64px; height: 80px; overflow: visible; }
+      #app-loader .app-loader__drop-level { transition: transform 240ms ease-out; }
+      #app-loader .app-loader__glow {
+        filter: drop-shadow(0 0 14px rgba(214, 51, 74, 0.6));
+        animation: app-loader-pulse 1.4s ease-in-out infinite;
+      }
+      #app-loader.app-loader--active .app-loader__glow { animation: none; }
+      #app-loader .app-loader__pct {
+        color: #b3a0ba; font: 600 14px/1 system-ui, sans-serif;
+        letter-spacing: 0.1em; font-variant-numeric: tabular-nums;
+      }
+      /* Знак Allegra — над названием игры. */
+      #app-loader .app-loader__publisher-name {
+        margin-bottom: -6px;
+        font-family: 'Indira K', Georgia, serif;
+        font-size: clamp(26px, 7vw, 36px); line-height: 1; letter-spacing: 0.03em;
+        background: linear-gradient(to bottom, #f5e6b0 0%, #fff5c0 30%, #ffd84d 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: #ffd84d;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+      }
+      @keyframes app-loader-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+      @keyframes app-loader-twinkle { from { opacity: 0.45; } to { opacity: 0.8; } }
+      @media (prefers-reduced-motion: reduce) {
+        #app-loader, #app-loader * { animation: none !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
+    <!--
+      SDK площадки. Обычный скрипт, а не модуль: он должен успеть выполниться до
+      кода игры. Если его заблокировали или мы запустились не на Яндексе,
+      window.YaGames просто не появится — игра это переживает и идёт на местном
+      сохранении.
+    -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+  </head>
+  <body>
+    <div id="app-loader" role="progressbar" aria-label="Загрузка" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="app-loader__stars"></div>
+      <div class="app-loader__fog app-loader__fog--back"></div>
+      <div class="app-loader__fog app-loader__fog--front"></div>
+      <div class="app-loader__center">
+        <span class="app-loader__publisher-name">Allegra</span>
+        <h1 class="app-loader__title">Багровая Цитадель</h1>
+        <svg class="app-loader__drop" viewBox="0 0 64 80" aria-hidden="true">
+          <defs>
+            <clipPath id="app-loader-shape">
+              <path d="M32 4C44 20 56 34 56 50a24 24 0 0 1-48 0C8 34 20 20 32 4Z" />
+            </clipPath>
+          </defs>
+          <g class="app-loader__glow">
+            <path d="M32 4C44 20 56 34 56 50a24 24 0 0 1-48 0C8 34 20 20 32 4Z" fill="rgba(36, 18, 43, 0.9)" stroke="rgba(214, 51, 74, 0.55)" stroke-width="2" />
+            <g clip-path="url(#app-loader-shape)">
+              <rect id="app-loader-level" class="app-loader__drop-level" x="0" y="0" width="64" height="80" fill="#d6334a" style="transform: translateY(80px)" />
+              <ellipse cx="24" cy="44" rx="5" ry="9" fill="rgba(255, 255, 255, 0.28)" />
+            </g>
+          </g>
+        </svg>
+        <div class="app-loader__pct" id="app-loader-pct">0%</div>
+      </div>
+    </div>
+    <script>
+      // Управление экраном загрузки. Обычный скрипт, не модуль: должен быть
+      // готов раньше кода игры. Ранние и повторные вызовы безопасны.
+      (function () {
+        var el = document.getElementById('app-loader');
+        var level = document.getElementById('app-loader-level');
+        var pct = document.getElementById('app-loader-pct');
+        var hidden = false;
+        window.__appLoader = {
+          set: function (p) {
+            if (!el || hidden) return;
+            el.classList.add('app-loader--active');
+            var v = p < 0 ? 0 : p > 1 ? 1 : p || 0;
+            var n = Math.round(v * 100);
+            if (level) level.style.transform = 'translateY(' + (80 - v * 80) + 'px)';
+            if (pct) pct.textContent = n + '%';
+            el.setAttribute('aria-valuenow', String(n));
+          },
+          hide: function () {
+            if (hidden || !el) return;
+            hidden = true;
+            el.classList.add('app-loader--hide');
+            var remove = function () {
+              if (el && el.parentNode) el.parentNode.removeChild(el);
+            };
+            el.addEventListener('transitionend', remove, { once: true });
+            // transitionend не приходит, если вкладка в фоне или движение выключено.
+            setTimeout(remove, 600);
+          },
+        };
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/app/main.tsx"></script>
+  </body>
+</html>

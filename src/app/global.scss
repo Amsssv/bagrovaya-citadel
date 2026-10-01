@@ -1,0 +1,128 @@
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  // ── цвет ──────────────────────────────────────────────────────────────
+  // Ночь, три слоя глубины и два акцента. Багрянец — действие и выбранное,
+  // золото — только рекорды и награды, чтобы его было за что замечать.
+  --night: #170b1c;
+  --surface: #24122b;
+  --raised: #32193b;
+  --line: rgb(239 228 234 / 12%);
+  --line-strong: rgb(239 228 234 / 24%);
+
+  --bone: #efe4ea;
+  --ash: #b3a0ba;
+  --ash-dim: #85718c;
+
+  --crimson: #9b1b30;
+  --crimson-deep: #6a0f20;
+  --crimson-bright: #d6334a;
+  --gold: #e3b65a;
+
+  // ── шрифт ─────────────────────────────────────────────────────────────
+  // Капитель Cormorant — голос цитадели: заголовки и главное действие.
+  // Manrope — всё остальное; цифры у него ровные и читаются на бегу.
+  --font-display: 'Cormorant SC', 'Georgia', serif;
+  --font-ui: 'Manrope Variable', system-ui, sans-serif;
+
+  // ── форма ─────────────────────────────────────────────────────────────
+  // Радиусы по роли, а не один на всё: чем крупнее и главнее, тем круглее.
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --radius-pill: 999px;
+
+  --shadow-lift: 0 10px 30px rgb(5 2 8 / 55%);
+  --focus: 0 0 0 2px var(--night), 0 0 0 4px var(--crimson-bright);
+
+  // 44 точки — минимум, ниже которого палец промахивается.
+  --tap: 44px;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  // 100dvh, а не 100vh: иначе панель браузера на мобильном срезает низ экрана,
+  // где лежит вся зона большого пальца.
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  // Саму воду рисует `Water`; это — подложка на первый кадр, до React:
+  // ночная вода, waterColor(0) из widgets/board/daylight.ts.
+  background: #19084b;
+  color: var(--bone);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+
+  // Игра одной рукой: ни выделения текста, ни подсветки тапа, ни зума
+  // по двойному тапу.
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+
+  // Контекстное меню по долгому нажатию и зум по двойному тапу игре мешают.
+  -webkit-touch-callout: none;
+}
+
+// Прокрутка в тон игре: тонкая багровая нить вместо серой системной полосы.
+// Стандартные свойства понимают Firefox и свежий Chrome; для Safari и
+// старого Chrome — те же цвета через webkit-псевдоэлементы.
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(214 51 74 / 45%) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background: rgb(214 51 74 / 45%) padding-box;
+
+  &:hover {
+    background-color: rgb(214 51 74 / 70%);
+  }
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+// Фокус виден только с клавиатуры: палец обводка лишь отвлекает.
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

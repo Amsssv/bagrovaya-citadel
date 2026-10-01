@@ -1,0 +1,23 @@
+/tmp
+/out-tsc
+
+/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/.pnp
+.pnp.js
+
+.vscode/*
+/dist
+/coverage
+
+/.demo
+/.demo-tune
+
+/*.zip
+
+# Бандл оригинала — только для разбора, в репозиторий не идёт.
+original/
+
+__pycache__/

@@ -1,0 +1,72 @@
+.meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.drops {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgb(23 11 28 / 72%);
+  backdrop-filter: blur(4px);
+}
+
+.full,
+.empty {
+  display: grid;
+  place-items: center;
+}
+
+// Полная капля — живая кровь: заливка, блик и тёплое свечение.
+.full {
+  color: #ff5a6e;
+  filter: drop-shadow(0 0 6px rgb(214 51 74 / 55%));
+  animation: fill 360ms var(--ease-out);
+
+  svg {
+    fill: var(--crimson-bright);
+  }
+}
+
+// Пустая — только контур: видно, сколько уже выпито за ночь.
+.empty {
+  color: var(--ash-dim);
+  opacity: 0.6;
+}
+
+.extra {
+  margin-left: 0.2rem;
+  color: #ff8a98;
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  animation: fill 360ms var(--ease-out);
+}
+
+.caption {
+  // Под шкалой облака, днём почти белые: подпись — на тёмной плашке, как
+  // и сама шкала, иначе светлый текст на них пропадает.
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: rgb(23 11 28 / 70%);
+  color: var(--bone);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@keyframes fill {
+  0% {
+    transform: scale(0.6) translateY(-6px);
+    opacity: 0.4;
+  }
+
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}

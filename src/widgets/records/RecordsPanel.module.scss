@@ -1,0 +1,93 @@
+// Свой рекорд — первым и крупно: ради него летопись и открывают.
+.mine {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.15rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(227 182 90 / 28%);
+  border-radius: var(--radius-m);
+  background: rgb(227 182 90 / 7%);
+}
+
+.mineLabel {
+  grid-column: 1 / -1;
+  color: var(--ash);
+  font-size: 0.85rem;
+}
+
+.mineValue {
+  color: var(--ash);
+
+  b {
+    color: var(--gold);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+}
+
+.mineNights {
+  color: var(--ash);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  color: var(--ash);
+  font-size: 0.9rem;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.row,
+.rowMine {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+
+.rowMine {
+  border-bottom-color: transparent;
+  border-radius: var(--radius-s);
+  background: var(--crimson);
+  color: #fff4f6;
+
+  .rank {
+    color: inherit;
+  }
+}
+
+.gap {
+  padding: 0.25rem 0;
+  color: var(--ash-dim);
+  text-align: center;
+  letter-spacing: 0.2em;
+}
+
+.rank {
+  color: var(--ash-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,47 @@
+// Две кнопки на всю игру: главная и второстепенная. Больше вариантов — и
+// игрок перестаёт понимать, какая из них важнее.
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  padding: 0 1.25rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    transform 120ms ease-out;
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.primary {
+  border: 1px solid var(--crimson-bright);
+  background: var(--crimson);
+  color: #fff4f6;
+
+  &:hover:not(:disabled) {
+    background: #ac2037;
+  }
+}
+
+.secondary {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--bone);
+
+  &:hover:not(:disabled) {
+    background: var(--line);
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "bagrovaya-citadel",
+  "version": "1.0.0",
+  "description": "Багровая Цитадель — match-3 + merge + tower defense для Яндекс.Игр",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "zip": "npm run build && sh scripts/zip.sh",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "demo:night": "vite build --ssr scripts/demo-night.ts --outDir .demo --emptyOutDir --logLevel error && node .demo/demo-night.js",
+    "demo:run": "vite build --ssr scripts/demo-run.ts --outDir .demo --emptyOutDir --logLevel error && node .demo/demo-run.js",
+    "bot": "vite build --ssr scripts/bot-run.ts --outDir .demo --emptyOutDir --logLevel error && node .demo/bot-run.js",
+    "strategist": "vite build --ssr scripts/strategist-run.ts --outDir .demo --emptyOutDir --logLevel error && node .demo/strategist-run.js",
+    "strategist:tune": "vite build --ssr scripts/strategist-tune.ts --outDir .demo-tune --emptyOutDir --logLevel error && node .demo-tune/strategist-tune.js"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/cormorant-sc": "^5.3.0",
+    "phaser": "^3.90.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^10.10.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "jsdom": "^29.1.1",
+    "sass": "^1.104.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  },
+  "private": true,
+  "type": "module"
+}

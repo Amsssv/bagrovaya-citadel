@@ -1,0 +1,452 @@
+.screen {
+  // Опора для модальных панелей: они тоже не выходят за 1280.
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  // Шире 1280 интерфейс не растягивается: React-слой живёт внутри этого
+  // контейнера. Канвас под ним — на всё окно, ради воды и облаков по краям.
+  width: 100%;
+  max-width: 1280px;
+  height: 100%;
+  margin: 0 auto;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+// ── шапка ─────────────────────────────────────────────────────────────────
+// Шапка прозрачная и лежит поверх замка. Сквозная: нажатия мимо плашек
+// проходят на канвас.
+.header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  padding: 0.6rem 0.75rem;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+
+  @media (width >= 640px) {
+    padding: 0.9rem 1.25rem;
+  }
+}
+
+// Три счётчика одной плашкой: их смотрят вместе, одним взглядом.
+.stats {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgb(36 18 43 / 80%);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.55rem;
+
+  @media (width < 380px) {
+    gap: 0.25rem;
+    padding: 0 0.35rem;
+  }
+
+  & + & {
+    border-left: 1px solid var(--line);
+  }
+
+  dt {
+    display: flex;
+  }
+
+  dd {
+    min-width: 1.5ch;
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Удар по воротам: сердце в шапке вздрагивает и краснеет.
+.hurt {
+  animation: hurt 420ms var(--ease-out);
+}
+
+@keyframes hurt {
+  0% {
+    transform: scale(1);
+    filter: none;
+  }
+  25% {
+    transform: scale(1.45) rotate(-8deg);
+    filter: drop-shadow(0 0 6px rgb(255 59 79 / 90%));
+  }
+  60% {
+    transform: scale(0.9) rotate(4deg);
+  }
+  100% {
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hurt {
+    animation: none;
+  }
+}
+
+.heart {
+  color: var(--crimson-bright);
+  fill: rgb(214 51 74 / 35%);
+}
+
+.moon {
+  color: #c9b8ff;
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  // Узкий телефон (до 380 px): шесть кнопок шапки в 40 px не помещаются, и
+  // крайняя уезжает за экран. Кнопки чуть меньше — всё ещё под палец. Правило
+  // бьёт только по кнопкам шапки (и по кнопкам-переключателям языка и
+  // настроек), а не по пунктам их всплывающих меню.
+  @media (width < 380px) {
+    gap: 0;
+
+    > button,
+    > div > button {
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      padding: 0;
+    }
+  }
+}
+
+.round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ash);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+
+  &:hover:not(:disabled) {
+    background: var(--line);
+    color: var(--bone);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+// ── левый верхний угол: отсчёт до босса ─────────────────────────────────────
+// Цель ночей, как в оригинале: сколько осталось до Проповедника. В его ночь —
+// алая плашка.
+.bossChip {
+  position: absolute;
+  top: calc(var(--safe-top) + 40px + 1.45rem);
+  left: 0.75rem;
+  max-width: calc(50% - 1rem);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgb(23 11 28 / 78%);
+  color: var(--ash);
+  font: 600 0.8rem/1.25 var(--font-ui);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+
+  @media (width >= 640px) {
+    top: calc(var(--safe-top) + 40px + 2.05rem);
+    left: 1.25rem;
+  }
+}
+
+.bossChipNow {
+  @extend .bossChip;
+  border-color: rgb(255 150 165 / 45%);
+  background: rgb(106 15 32 / 88%);
+  color: #fff1f3;
+}
+
+// ── правый верхний угол: скорость боя, под ней отмена хода ─────────────────
+.controls {
+  position: absolute;
+  // Под шапкой: оверлей во весь экран, а шапка — 40px плюс отступы.
+  top: calc(var(--safe-top) + 40px + 1.45rem);
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+
+  @media (width >= 640px) {
+    top: calc(var(--safe-top) + 40px + 2.05rem);
+    right: 1.25rem;
+  }
+}
+
+.speed {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: rgb(23 11 28 / 78%);
+  backdrop-filter: blur(4px);
+
+  // Оверлей сквозной, поэтому кнопки включают события у себя точечно.
+  pointer-events: auto;
+}
+
+.seg,
+.segOn {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--ash);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--bone);
+  }
+}
+
+.segOn {
+  background: var(--raised);
+  color: var(--bone);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+// ── низ: главное действие под большим пальцем ─────────────────────────────
+.footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  // Высота постоянная: шкала, кнопка реванша и всплывающее предложение не
+  // должны двигать поле. Любое изменение здесь — это resize канваса и
+  // перерисовка всей сцены у игрока на глазах.
+  height: 6.5rem;
+  // Шапка и подвал сняты с канваса, между ними — пустое место под поле.
+  margin-top: auto;
+  padding: 0 1rem 0.5rem;
+  // Подвал лежит поверх облаков и тоже сквозной.
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// Предложение ролика всплывает над шкалой, поверх нижней кромки поля, и места
+// в раскладке не занимает.
+.offer {
+  position: absolute;
+  bottom: calc(100% - 0.25rem);
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  filter: drop-shadow(0 6px 16px rgb(5 2 8 / 60%));
+  animation: offer 240ms var(--ease-out);
+}
+
+@keyframes offer {
+  from {
+    transform: translate(-50%, 8px);
+    opacity: 0;
+  }
+}
+
+// Отмена хода — под скоростью боя. Оверлей сквозной, поэтому события кнопка
+// включает у себя сама.
+.undo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: rgb(23 11 28 / 78%);
+  color: var(--bone);
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+  transition:
+    background-color 120ms ease-out,
+    opacity 120ms ease-out;
+
+  &:hover:not(:disabled) {
+    background: var(--raised);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+// Отменить нельзя: та же кнопка, полупрозрачная, но живая — по нажатию
+// объясняет почему (как в оригинале).
+.undoOff {
+  @extend .undo;
+  opacity: 0.4;
+}
+
+// Почему нельзя отменить — над шкалой, всплывает и гаснет сама.
+.notice {
+  position: absolute;
+  bottom: calc(100% + 0.25rem);
+  left: 50%;
+  z-index: 2;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-m);
+  background: rgb(23 11 28 / 92%);
+  color: var(--bone);
+  font: 600 0.9rem/1.35 var(--font-ui);
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: bonus 2200ms var(--ease-out) forwards;
+}
+
+// Надпись о бонусной крови — над шкалой, как предложение ролика; всплывает и
+// гаснет сама.
+.bonus {
+  position: absolute;
+  bottom: calc(100% + 0.25rem);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgb(255 150 165 / 35%);
+  border-radius: var(--radius-pill);
+  background: rgb(23 11 28 / 88%);
+  color: #fff1f3;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: bonus 1600ms var(--ease-out) forwards;
+
+  b {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+  }
+
+  span {
+    color: var(--crimson-bright);
+    font: 700 0.85rem/1 var(--font-ui);
+  }
+}
+
+@keyframes bonus {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bonus {
+    animation: none;
+  }
+}
+
+.restart {
+  width: 100%;
+  max-width: 22rem;
+  min-height: 56px;
+  border: 1px solid rgb(255 150 165 / 35%);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, #b02238, var(--crimson-deep));
+  color: #fff1f3;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 18%),
+    0 8px 28px rgb(214 51 74 / 28%);
+  cursor: pointer;
+
+  &:active {
+    transform: translateY(1px) scale(0.99);
+  }
+}
+
+// Выходной: вместо шкалы крови — подпись и «Готово».
+.dayOff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+
+  p {
+    color: var(--ash);
+    font-size: 0.9rem;
+  }
+}

@@ -1,0 +1,23 @@
+// Награда — золотом: единственное место, где игре есть что предложить игроку,
+// а не наоборот.
+.rewarded {
+  min-height: var(--tap);
+  padding: 0 1.25rem;
+  border: 1px solid rgb(227 182 90 / 55%);
+  border-radius: var(--radius-pill);
+  // Непрозрачный фон: кнопка может всплыть поверх арта поля.
+  background: linear-gradient(rgb(227 182 90 / 12%), rgb(227 182 90 / 12%)), var(--surface);
+  color: var(--gold);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(rgb(227 182 90 / 20%), rgb(227 182 90 / 20%)), var(--surface);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
