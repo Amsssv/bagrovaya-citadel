@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { AtlasMap } from './atlas';
+import type { OurAtlas } from './ourAtlas';
 import {
   OPTIONAL_ANIMS,
   OPTIONAL_FRAMES,
@@ -169,10 +170,30 @@ describe('анимация врага', () => {
   });
 });
 
-/** Размер PNG из заголовка: ширина и высота — байты 16–23. */
-function pngSize(file: string): { width: number; height: number } {
-  const header = readFileSync(file);
-  return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
+/**
+ * Размер картинки из заголовка: PNG (атлас оригинала) или WebP (атлас
+ * дизайнера) — без декодера, по байтам.
+ */
+function imageSize(file: string): { width: number; height: number } {
+  const bytes = readFileSync(file);
+  if (bytes.toString('ascii', 1, 4) === 'PNG') {
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+  if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WEBP') {
+    throw new Error(`${file}: не PNG и не WebP`);
+  }
+  const chunk = bytes.toString('ascii', 12, 16);
+  if (chunk === 'VP8X') {
+    return { width: 1 + bytes.readUIntLE(24, 3), height: 1 + bytes.readUIntLE(27, 3) };
+  }
+  if (chunk === 'VP8L') {
+    const bits = bytes.readUInt32LE(21);
+    return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >> 14) & 0x3fff) };
+  }
+  if (chunk === 'VP8 ') {
+    return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+  }
+  throw new Error(`${file}: незнакомый WebP (${chunk})`);
 }
 
 /** Кадры, которые вылезают за край картинки. */
@@ -184,20 +205,28 @@ function outside(map: AtlasMap, size: { width: number; height: number }): string
 
 // Настоящие атласы проверяются, только если лежат в проекте: атлас дизайнера
 // идёт в сборку, атлас оригинала — только локально, в original/ (.gitignore).
-for (const [title, dir] of [
-  ['атлас дизайнера', 'src/shared/assets/atlas'],
-  ['атлас оригинала (локально)', 'original'],
+for (const [title, dir, picture] of [
+  ['атлас дизайнера', 'src/shared/assets/atlas', 'texture.webp'],
+  ['атлас оригинала (локально)', 'original', 'texture.png'],
 ] as const) {
   const json = `${dir}/atlas.json`;
-  const png = `${dir}/texture.png`;
-  describe.skipIf(!existsSync(json) || !existsSync(png))(title, () => {
+  const image = `${dir}/${picture}`;
+  describe.skipIf(!existsSync(json) || !existsSync(image))(title, () => {
     it('годится: все кадры и анимации на месте', () => {
       expect(atlasProblems(JSON.parse(readFileSync(json, 'utf8')) as AtlasMap)).toEqual([]);
     });
 
     it('каждый кадр помещается в картинку', () => {
       const map = JSON.parse(readFileSync(json, 'utf8')) as AtlasMap;
-      expect(outside(map, pngSize(png))).toEqual([]);
+      expect(outside(map, imageSize(image))).toEqual([]);
+    });
+
+    // Картинку пересжали с другим размером — кадры atlas.json съезжают.
+    it('размер листа в atlas.json совпадает с картинкой', () => {
+      const map = JSON.parse(readFileSync(json, 'utf8')) as OurAtlas;
+      if (map.size === undefined) return;
+      const { width, height } = imageSize(image);
+      expect([width, height]).toEqual(map.size);
     });
   });
 }

@@ -12,7 +12,7 @@ function first<T>(files: Record<string, T>): T | undefined {
 }
 
 export const OUR_ATLAS_TEXTURE = first(
-  import.meta.glob<string>('/src/shared/assets/atlas/texture.png', {
+  import.meta.glob<string>('/src/shared/assets/atlas/texture.webp', {
     eager: true,
     query: '?url',
     import: 'default',

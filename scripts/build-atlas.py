@@ -8,8 +8,8 @@
   3. масштабирует каждую группу к своему размеру в клетках (размеры — как у
      оригинала при клетке 48, docs/atlas.md) и ставит кадр по правилам сцены;
   4. облака делает бесшовными и выравнивает им низ в один цвет;
-  5. упаковывает всё в `src/shared/assets/atlas/texture.png` (палитра в 256
-     цветов) + `atlas.json`.
+  5. упаковывает всё в `src/shared/assets/atlas/texture.webp` (палитра в 256
+     цветов, WebP без потерь) + `atlas.json`.
 
 Запуск: python3 scripts/build-atlas.py (нужен Pillow).
 """
@@ -893,9 +893,10 @@ def main():
     sheet, rects = pack(frames)
     TARGET.mkdir(parents=True, exist_ok=True)
     # Палитра в 256 цветов без дизеринга: для пиксельного арта на глаз без
-    # потерь, а весит впятеро меньше — это первая загрузка игры.
+    # потерь, а весит впятеро меньше — это первая загрузка игры. WebP — только
+    # без потерь и без пересжатия размера: кадры atlas.json стоят в точках листа.
     palette = sheet.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    palette.save(TARGET / 'texture.png', optimize=True)
+    palette.convert('RGBA').save(TARGET / 'texture.webp', lossless=True, quality=100, method=6, exact=True)
     atlas = {
         'cell': CELL,
         # Размер листа: по нему интерфейс (справка) режет кадры через CSS.
@@ -919,7 +920,7 @@ def main():
         },
     }
     (TARGET / 'atlas.json').write_text(json.dumps(atlas, indent=2) + '\n')
-    print(f'texture.png {sheet.width}×{sheet.height}, {len(rects)} кадров')
+    print(f'texture.webp {sheet.width}×{sheet.height}, {len(rects)} кадров')
 
 
 if __name__ == '__main__':

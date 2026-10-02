@@ -7,7 +7,7 @@ import { OUR_ATLAS_MAP_URL, OUR_ATLAS_TEXTURE, atlasAnimLoops, atlasProblems } f
  * Арт поля из атласа (формат и список кадров — docs/atlas.md).
  *
  * Откуда берётся атлас:
- *   1. **атлас дизайнера, по умолчанию** — `src/shared/assets/atlas/texture.png`
+ *   1. **атлас дизайнера, по умолчанию** — `src/shared/assets/atlas/texture.webp`
  *      и `atlas.json`. Лежит — работает и в сборке, и в dev;
  *   2. **dev-сервер с `?art=original`** — арт оригинала из `original/` (папка в
  *      .gitignore), для сравнения. ⚠️ Он чужой и в сборку не попадает никогда:
