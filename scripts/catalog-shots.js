@@ -5,7 +5,7 @@
  *   PLAYWRIGHT=<путь к playwright/index.mjs> node scripts/catalog-shots.js <phone|desktop> <ru|en>
  *   python3 scripts/catalog-screens.py
  *
- * Кадры — в `art/catalog/screens/<язык>/raw/<вид>-NN-<что>.png`; готовые 16:9
+ * Кадры — в `art/catalog/screens/<язык>/raw/<вид>-NN-<что>.png`; готовые (ПК 16:9, телефон 9:16)
  * из них собирает catalog-screens.py. Телефон снимается в 2× от 1080 × 1920
  * (2160 × 3840): catalog-screens.py всё равно уменьшает его, и с запасом края
  * и текст глаже. Потолок плотности канваса в игре поднят параметром density
