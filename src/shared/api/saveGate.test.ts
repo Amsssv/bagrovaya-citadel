@@ -26,6 +26,17 @@ describe('ограничитель записи', () => {
     expect(write).toHaveBeenLastCalledWith('три');
   });
 
+  // Так пишется сейв на устройство (п. 1.9 требований Яндекса).
+  it('с нулевым сроком пишет каждое изменение сразу, но не повторы', () => {
+    const write = vi.fn();
+    const gate = createSaveGate(write, 0);
+    expect(gate.request('раз', 0)).toBe(true);
+    expect(gate.request('два', 0)).toBe(true);
+    expect(gate.request('два', 1)).toBe(false);
+    expect(gate.pending).toBe(false);
+    expect(write.mock.calls).toEqual([['раз'], ['два']]);
+  });
+
   it('одно и то же значение второй раз не пишем', () => {
     const write = vi.fn();
     const gate = createSaveGate(write, 10_000);
