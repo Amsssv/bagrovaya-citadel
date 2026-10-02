@@ -17,7 +17,7 @@
     "itWillBeGone": "It will be gone from the board. Like any move, this costs a drop of blood.",
     "throwAway": "Throw away",
     "keepIt": "Keep it",
-    "theRunEndsNow": "The run ends now and your record is saved. You cannot repair the citadel with a video after that.",
+    "theRunEndsNow": "The run ends now and your record is saved. You cannot repair the citadel with an ad after that.",
     "keepPlaying": "Keep playing",
     "crimsonCitadel": "Crimson Citadel",
     "loading": "Loading",
@@ -65,7 +65,7 @@
       "duskOptional": "A match is optional: a swap can simply move a finished building to where it is needed more.",
       "dawnTitle": "Dawn",
       "dawnBattle": "When the blood runs out, dawn comes by itself. Hunters come from below and march up to the gate while your buildings open fire. Each one that gets through takes hearts from the citadel.",
-      "dawnAfter": "After the battle the blood refills: {count} {drops} again. Out of hearts — the citadel has fallen. Once per session you can repair it by watching a video; otherwise the run starts over.",
+      "dawnAfter": "After the battle the blood refills: {count} {drops} again. Out of hearts — the citadel has fallen. Once per session you can repair it by watching an ad; otherwise the run starts over.",
       "placement": "The building appears where you moved the tile. If the match is vertical, the building drops down to the first free cell.",
       "undo": "You can undo with the arrow button at the top right, under the battle speed — several moves in a row — until new tiles fall in. Once they have, the move is final.",
       "taps": "Tap a chalice to drink it — the blood is added at once. Hold your finger on any cell to see what it is and how it works."
@@ -75,8 +75,8 @@
   },
   "runOver": {
     "theCitadelHasFallen": "The citadel has fallen",
-    "video": "Video…",
-    "repairTheCitadelWatch": "Repair the citadel — watch a video",
+    "video": "Ad…",
+    "repairTheCitadelWatch": "Repair the citadel — watch an ad",
     "startOver": "Start over",
     "chooseAnotherCitadel": "Choose another citadel",
     "nights": "Nights",
@@ -133,7 +133,7 @@
     }
   },
   "ads": {
-    "video": "Video…"
+    "video": "Ad…"
   },
   "lang": {
     "language": "Language"

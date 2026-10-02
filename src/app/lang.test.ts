@@ -42,6 +42,23 @@ describe('язык при запуске', () => {
     expect(await detectLang(createMockPlatform({ lang: 'ru' }), storage)).toBe('en');
   });
 
+  // Отладочная панель Яндекса засчитывает п. 2.14 («I18N is used»), только если
+  // игра прочла environment.i18n.lang: при ручном выборе тоже (BUG-003 в
+  // matching-game).
+  it('язык площадки читается, даже когда сильнее выбор игрока или адрес', async () => {
+    const storage = createMemoryStorage();
+    saveLangChoice('ru', storage);
+    const platform = createMockPlatform({ lang: 'en' });
+    const getLang = vi.spyOn(platform, 'getLang');
+    expect(await detectLang(platform, storage)).toBe('ru');
+    expect(getLang).toHaveBeenCalled();
+
+    window.history.replaceState(null, '', '/?lang=en');
+    getLang.mockClear();
+    expect(await detectLang(platform, storage)).toBe('en');
+    expect(getLang).toHaveBeenCalled();
+  });
+
   it('площадка всё равно поднимается', async () => {
     const platform = createMockPlatform({ lang: 'en' });
     const init = vi.spyOn(platform, 'init');

@@ -38,14 +38,19 @@ export async function detectLang(
     new Promise<void>((resolve) => setTimeout(resolve, SDK_WAIT_MS)),
   ]);
 
+  // Язык площадки читаем всегда, даже когда его перебьёт выбор игрока:
+  // отладочная панель Яндекса засчитывает п. 2.14 («I18N is used»), только
+  // если игра прочла environment.i18n.lang (BUG-003 в matching-game).
+  await ready;
+  const detected = resolveLang(platform.isReady() ? platform.getLang() : navigator.language);
+
   const forced = new URLSearchParams(window.location.search).get('lang');
   if (isLang(forced)) return forced;
 
   const chosen = storage.read(LANG_STORAGE_KEY);
   if (isLang(chosen)) return chosen;
 
-  await ready;
-  return resolveLang(platform.isReady() ? platform.getLang() : navigator.language);
+  return detected;
 }
 
 /** Запомнить ручной выбор игрока. */
