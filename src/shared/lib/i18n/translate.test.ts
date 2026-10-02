@@ -56,7 +56,7 @@ describe('перевод по ключу', () => {
   });
 
   it('подстановки', () => {
-    expect(t('app.victory.title', { night: 10 })).toBe('Проповедник пал! 10-й рассвет пережит');
+    expect(t('app.victory.title', { night: 10 })).toBe('Глашатай пал! 10-й рассвет пережит');
     // Чего не передали — остаётся как было, а не пропадает молча.
     expect(t('app.victory.title')).toContain('{night}');
     expect(t('app.victory.title', { other: 1 })).toContain('{night}');

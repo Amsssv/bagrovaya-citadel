@@ -9,7 +9,7 @@
     "giveUp": "Give up",
     "howToPlay": "How to play",
     "askBeforeThrowingA": "Ask before throwing a building away",
-    "thePreacherComesTonight": "The Preacher comes tonight!",
+    "thePreacherComesTonight": "The Herald comes tonight!",
     "battleSpeed": "Battle speed",
     "skipBattle": "Skip battle",
     "undoMove": "Undo move",
@@ -22,13 +22,13 @@
     "crimsonCitadel": "Crimson Citadel",
     "loading": "Loading",
     "giveUpTitle": "Give up?",
-    "preacherIn": "The Preacher in {count} {nights}",
+    "preacherIn": "The Herald in {count} {nights}",
     "victory": {
-      "title": "The Preacher has fallen! Dawn {night} survived",
-      "text": "Well done! Keep building your defence: the next Preacher, stronger than the last, comes on night {next}.",
+      "title": "The Herald has fallen! Dawn {night} survived",
+      "text": "Well done! Keep building your defence: the next Herald, stronger than the last, comes on night {next}.",
       "points": "+{points} points",
       "lastTitle": "The Order is broken!",
-      "lastText": "All five preachers are defeated. Next the Order sends paladins — how many more nights will the citadel hold?"
+      "lastText": "All five heralds are defeated. Next the Order sends paladins — how many more nights will the citadel hold?"
     }
   },
   "guide": {
@@ -43,15 +43,15 @@
     "chalicesClimbTheSame": "Chalices climb the same ladder, and each tier holds many times more blood than the one before. Merge them and drink them before the boss.",
     "aHunterWalksStraight": "A hunter walks straight up its column. It neither goes around buildings nor breaks them — it walks right through.",
     "soYouCannotBuild": "So you cannot build a maze. Fog buys time, not distance: the lower it stands, the longer your buildings get to shoot.",
-    "soldiersMarchInA": "Soldiers march in a column, more of them and faster every night. Each hit knocks a soldier back a little; the Preacher does not budge.",
-    "thePreacher": "The Preacher",
+    "soldiersMarchInA": "Soldiers march in a column, more of them and faster every night. Each hit knocks a soldier back a little; the Herald does not budge.",
+    "thePreacher": "The Herald",
     "onABossNight": "On a boss night the lane he will take is highlighted during Dusk: build up your defence in that column in time. Fog lined up with your firepower keeps him under fire for longer.",
     "citadelTowers": "Citadel towers",
     "twoTowersStandAbove": "Two towers stand above the outer columns. Drag a gargoyle from a top corner of the board up into the wall — it costs a drop of blood. From the tower it hits two cells in every direction, right where enemies reach the gate.",
-    "anOccupiedTowerOnly": "An occupied tower only takes a gargoyle of a higher tier — the old one is lost. Against the Preacher you need the top tiers.",
+    "anOccupiedTowerOnly": "An occupied tower only takes a gargoyle of a higher tier — the old one is lost. Against the Herald you need the top tiers.",
     "howToPlay": "How to play",
     "helpSections": "Help sections",
-    "preacherComes": "Comes alone on nights {nights}, slower than soldiers, each one stronger than the last. When he falls, his flock bursts out of him — a squad of soldiers. If he reaches the gate, he strikes for himself and for his whole flock inside.",
+    "preacherComes": "Comes alone on nights {nights}, slower than soldiers, each one stronger than the last. When he falls, his retinue bursts out of him — a squad of soldiers. If he reaches the gate, he strikes for himself and for his whole retinue inside.",
     "tabs": {
       "night": "Night",
       "matches": "Matches",
@@ -71,7 +71,7 @@
       "taps": "Tap a chalice to drink it — the blood is added at once. Hold your finger on any cell to see what it is and how it works."
     },
     "dayOffTitle": "Day off",
-    "dayOffText": "Once per run, after a Preacher night — on night 11, 21, 31 — you can take a day off: moves are free and unlimited, but no new tiles drop in and chalices can’t be drunk. Anything above an empty cell falls down. Press “Done” when everything is in place — the gaps fill up and dawn breaks, as after any night."
+    "dayOffText": "Once per run, after a Herald night — on night 11, 21, 31 — you can take a day off: moves are free and unlimited, but no new tiles drop in and chalices can’t be drunk. Anything above an empty cell falls down. Press “Done” when everything is in place — the gaps fill up and dawn breaks, as after any night."
   },
   "runOver": {
     "theCitadelHasFallen": "The citadel has fallen",
@@ -81,7 +81,7 @@
     "chooseAnotherCitadel": "Choose another citadel",
     "nights": "Nights",
     "score": "Score",
-    "score100PerNight": "Score: 100 per night, 1000 per Preacher, 1 per enemy, plus the buildings on the board on the last night — the higher the tier, the more they are worth.",
+    "score100PerNight": "Score: 100 per night, 1000 per Herald, 1 per enemy, plus the buildings on the board on the last night — the higher the tier, the more they are worth.",
     "oncePerSessionThe": "Once per session the citadel can be repaired: its hearts return to the start, and the nights go on.",
     "lead": "The Order of Dawn has broken into the citadel. Here is how long it held out.",
     "newRecord": "New record!"
@@ -117,10 +117,10 @@
     "locale": "en-US"
   },
   "boss": {
-    "thePreacher": "The Preacher",
+    "thePreacher": "The Herald",
     "reminder": {
-      "title": "The Preacher comes tonight",
-      "first": "The lane he will take is highlighted. Fortify it before dawn: if he reaches the gate, he strikes for his whole flock too.",
+      "title": "The Herald comes tonight",
+      "first": "The lane he will take is highlighted. Fortify it before dawn: if he reaches the gate, he strikes for his whole retinue too.",
       "stronger": "He is stronger than the last one: {hp} hit points. The lane he will take is highlighted — fortify it before dawn."
     }
   },
@@ -285,7 +285,7 @@
       },
       "end": {
         "title": "The night is held!",
-        "text": "From now on you are on your own. More hunters come every night, and the Preacher arrives on night 10. Help is behind the \"?\" button."
+        "text": "From now on you are on your own. More hunters come every night, and the Herald arrives on night 10. Help is behind the \"?\" button."
       }
     },
     "tip": {
