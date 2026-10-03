@@ -892,6 +892,72 @@ describe('полноэкранная реклама', () => {
   });
 });
 
+// Сторож отпустил игру, а ролик всё-таки открылся (медленная сеть): звук и
+// поле под рекламой — нарушение п. 4.7, как в matching-game.
+describe('реклама открылась после сторожа', () => {
+  async function late(kind: 'rewarded' | 'fullscreen') {
+    const started_ = await started();
+    const { platform, fake } = started_;
+    const seen: boolean[] = [];
+    platform.onPause((paused) => seen.push(paused));
+    vi.useFakeTimers();
+    const shown =
+      kind === 'rewarded' ? platform.showRewarded('ремонт') : platform.showFullscreen();
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(await shown).toBe('error');
+    const callbacks = () => (kind === 'rewarded' ? fake.ad() : fake.fullscreen());
+    return { ...started_, seen, callbacks };
+  }
+
+  it('ролик за награду снова ставит игру на паузу до закрытия', async () => {
+    const { seen, fake } = await late('rewarded');
+    expect(seen).toEqual([]);
+    fake.ad().onOpen?.();
+    expect(seen).toEqual([true]);
+    fake.ad().onRewarded();
+    fake.ad().onClose?.();
+    expect(seen).toEqual([true, false]);
+  });
+
+  it('полноэкранная — так же, и ошибка тоже снимает паузу', async () => {
+    const { seen, fake } = await late('fullscreen');
+    fake.fullscreen().onOpen?.();
+    expect(seen).toEqual([true]);
+    fake.fullscreen().onError?.(new Error('оборвалась'));
+    expect(seen).toEqual([true, false]);
+  });
+
+  it('опоздавшая и зависшая — через три минуты отпускаем', async () => {
+    const { seen, callbacks } = await late('fullscreen');
+    callbacks().onOpen?.();
+    await vi.advanceTimersByTimeAsync(179_000);
+    expect(seen).toEqual([true]);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(seen).toEqual([true, false]);
+  });
+
+  it('resume площадки не снимает паузу, пока опоздавшая реклама на экране', async () => {
+    const { seen, fake } = await late('rewarded');
+    fake.emit('game_api_pause');
+    fake.ad().onOpen?.();
+    fake.emit('game_api_resume');
+    expect(seen).toEqual([true]);
+    fake.ad().onClose?.();
+    expect(seen).toEqual([true, false]);
+  });
+
+  it('повторный onOpen и поздний onClose без onOpen паузу не ломают', async () => {
+    const { seen, fake } = await late('rewarded');
+    fake.ad().onClose?.();
+    expect(seen).toEqual([]);
+    fake.ad().onOpen?.();
+    fake.ad().onOpen?.();
+    fake.ad().onClose?.();
+    fake.ad().onClose?.();
+    expect(seen).toEqual([true, false]);
+  });
+});
+
 describe('паузы площадки', () => {
   it('game_api_pause и game_api_resume доходят до подписчиков', async () => {
     const { platform, fake } = await started();

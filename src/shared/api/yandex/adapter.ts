@@ -37,6 +37,11 @@ import type {
  *     на нашу рекламу, но и на окно покупки или вход — подписка ставится одна,
  *     сразу после подъёма SDK, и раздаётся всем, кто подписался через `onPause`.
  *
+ *   • **Реклама после сторожа.** На медленной сети ролик открывается позже
+ *     пятнадцати секунд, когда сторож уже отпустил игру. Такой поздний `onOpen`
+ *     снова ставит игру на паузу через `onPause` — до закрытия ролика или трёх
+ *     минут: звук под рекламой — нарушение п. 4.7.
+ *
  * Ни один метод не бросает: при отказе площадки игра обязана остаться играбельной.
  */
 const NO_CALLBACK_TIMEOUT_MS = 15_000;
@@ -62,8 +67,43 @@ export function createYandexPlatform(): PlatformAdapter {
 
   /** Кто ждёт пауз площадки. */
   const pauseHandlers = new Set<(paused: boolean) => void>();
-  const emitPause = (paused: boolean): void => {
+  /** Пауза от площадки (`game_api_pause`). */
+  let sdkPaused = false;
+  /** Сколько опоздавших реклам сейчас на экране. */
+  let lateAds = 0;
+  /** Что подписчики слышали последним — повторы не рассылаем. */
+  let pausedSent = false;
+  const publishPause = (): void => {
+    const paused = sdkPaused || lateAds > 0;
+    if (paused === pausedSent) return;
+    pausedSent = paused;
     for (const handler of pauseHandlers) handler(paused);
+  };
+
+  /**
+   * Реклама, открывшаяся после того, как сторож её отпустил: ставит игру на
+   * паузу до своего закрытия. Зависшую отпускаем тем же длинным сторожем.
+   */
+  const lateAd = (): { open(): void; close(): void } => {
+    let open = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const close = (): void => {
+      if (!open) return;
+      open = false;
+      clearTimeout(timer);
+      lateAds -= 1;
+      publishPause();
+    };
+    return {
+      open() {
+        if (open) return;
+        open = true;
+        lateAds += 1;
+        publishPause();
+        timer = setTimeout(close, STUCK_AD_TIMEOUT_MS);
+      },
+      close,
+    };
   };
 
   let setScoreChain: Promise<void> = Promise.resolve();
@@ -108,10 +148,12 @@ export function createYandexPlatform(): PlatformAdapter {
         try {
           sdk = (await window.YaGames?.init()) ?? null;
           sdk?.on('game_api_pause', () => {
-            emitPause(true);
+            sdkPaused = true;
+            publishPause();
           });
           sdk?.on('game_api_resume', () => {
-            emitPause(false);
+            sdkPaused = false;
+            publishPause();
           });
         } catch {
           // Площадки нет или она не поднялась — играем без неё.
@@ -198,6 +240,7 @@ export function createYandexPlatform(): PlatformAdapter {
         let settled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
         let rewarded = false;
+        const late = lateAd();
 
         const settle = (result: RewardedResult): void => {
           if (settled) return;
@@ -219,18 +262,22 @@ export function createYandexPlatform(): PlatformAdapter {
           adv.showRewardedVideo({
             callbacks: {
               // Ролик точно на экране: короткий сторож снимаем, иначе он оборвал
-              // бы показ длиннее пятнадцати секунд.
+              // бы показ длиннее пятнадцати секунд. Сторож уже отпустил игру —
+              // ставим её обратно на паузу.
               onOpen: () => {
-                arm(STUCK_AD_TIMEOUT_MS);
+                if (settled) late.open();
+                else arm(STUCK_AD_TIMEOUT_MS);
               },
               // Награда засчитана, но ролик ещё крутится — ждём закрытия.
               onRewarded: () => {
                 rewarded = true;
               },
               onClose: () => {
+                late.close();
                 settle(rewarded ? 'rewarded' : 'closed');
               },
               onError: () => {
+                late.close();
                 settle('error');
               },
             },
@@ -252,6 +299,7 @@ export function createYandexPlatform(): PlatformAdapter {
         }
         let settled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
+        const late = lateAd();
         const settle = (result: FullscreenResult): void => {
           if (settled) return;
           settled = true;
@@ -271,15 +319,19 @@ export function createYandexPlatform(): PlatformAdapter {
           show.call(sdk?.adv, {
             callbacks: {
               onOpen: () => {
-                arm(STUCK_AD_TIMEOUT_MS);
+                if (settled) late.open();
+                else arm(STUCK_AD_TIMEOUT_MS);
               },
               onClose: (wasShown) => {
+                late.close();
                 settle(wasShown ? 'shown' : 'skipped');
               },
               onError: () => {
+                late.close();
                 settle('error');
               },
               onOffline: () => {
+                late.close();
                 settle('error');
               },
             },
