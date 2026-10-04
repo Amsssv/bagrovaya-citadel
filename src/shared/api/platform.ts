@@ -69,6 +69,13 @@ export interface PlatformAdapter {
   showRewarded(placement: string): Promise<RewardedResult>;
   isRewardedAvailable(): boolean;
   /**
+   * Награда за ролик, от которого сторож `showRewarded` уже отказался (ответ
+   * был 'error'), а игрок его всё-таки открыл и досмотрел — на медленной сети.
+   * Приходит один раз, после закрытия ролика, с местом показа. Возвращает
+   * отписку.
+   */
+  onLateReward(handler: (placement: string) => void): () => void;
+  /**
    * Полноэкранная реклама — в естественную паузу игры (новый забег), как в
    * matching-game. Ответ приходит, когда реклама кончилась по любой причине.
    */

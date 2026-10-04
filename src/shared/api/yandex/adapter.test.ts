@@ -958,6 +958,100 @@ describe('реклама открылась после сторожа', () => {
   });
 });
 
+// Сторож отказался от ролика, а игрок его всё-таки досмотрел: награда
+// приходит отдельным каналом, после закрытия ролика.
+describe('поздняя награда', () => {
+  async function timedOut() {
+    const started_ = await started();
+    const rewards: string[] = [];
+    started_.platform.onLateReward((placement) => rewards.push(placement));
+    vi.useFakeTimers();
+    const shown = started_.platform.showRewarded('ремонт');
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(await shown).toBe('error');
+    return { ...started_, rewards };
+  }
+
+  it('досмотрел опоздавший ролик — награда приходит после закрытия', async () => {
+    const { fake, rewards } = await timedOut();
+    fake.ad().onOpen?.();
+    fake.ad().onRewarded();
+    expect(rewards).toEqual([]);
+    fake.ad().onClose?.();
+    expect(rewards).toEqual(['ремонт']);
+  });
+
+  it('закрыл опоздавший ролик, не досмотрев, — награды нет', async () => {
+    const { fake, rewards } = await timedOut();
+    fake.ad().onOpen?.();
+    fake.ad().onClose?.();
+    expect(rewards).toEqual([]);
+  });
+
+  it('опоздавший ролик оборвался ошибкой — награды нет', async () => {
+    const { fake, rewards } = await timedOut();
+    fake.ad().onOpen?.();
+    fake.ad().onRewarded();
+    fake.ad().onError?.(new Error('оборвался'));
+    expect(rewards).toEqual([]);
+  });
+
+  it('досмотрел и ролик завис — награду отдаём, когда отпускаем', async () => {
+    const { fake, rewards } = await timedOut();
+    fake.ad().onOpen?.();
+    fake.ad().onRewarded();
+    await vi.advanceTimersByTimeAsync(180_000);
+    expect(rewards).toEqual(['ремонт']);
+  });
+
+  it('награда приходит один раз, сколько бы коллбэков ни было', async () => {
+    const { fake, rewards } = await timedOut();
+    fake.ad().onOpen?.();
+    fake.ad().onRewarded();
+    fake.ad().onRewarded();
+    fake.ad().onClose?.();
+    fake.ad().onClose?.();
+    expect(rewards).toEqual(['ремонт']);
+  });
+
+  it('обычный показ поздним каналом не идёт', async () => {
+    const { platform, fake } = await started();
+    const rewards: string[] = [];
+    platform.onLateReward((placement) => rewards.push(placement));
+    const shown = platform.showRewarded('ремонт');
+    fake.ad().onOpen?.();
+    fake.ad().onRewarded();
+    fake.ad().onClose?.();
+    expect(await shown).toBe('rewarded');
+    expect(rewards).toEqual([]);
+  });
+
+  it('ответ уже был ошибкой площадки — позднюю награду не засчитываем', async () => {
+    const { platform, fake } = await started();
+    const rewards: string[] = [];
+    platform.onLateReward((placement) => rewards.push(placement));
+    const shown = platform.showRewarded('ремонт');
+    fake.ad().onError?.(new Error('нет рекламы'));
+    fake.ad().onRewarded();
+    fake.ad().onClose?.();
+    expect(await shown).toBe('error');
+    expect(rewards).toEqual([]);
+  });
+
+  it('отписка работает', async () => {
+    const { platform, fake } = await started();
+    const rewards: string[] = [];
+    const off = platform.onLateReward((placement) => rewards.push(placement));
+    off();
+    vi.useFakeTimers();
+    void platform.showRewarded('ремонт');
+    await vi.advanceTimersByTimeAsync(15_000);
+    fake.ad().onRewarded();
+    fake.ad().onClose?.();
+    expect(rewards).toEqual([]);
+  });
+});
+
 describe('паузы площадки', () => {
   it('game_api_pause и game_api_resume доходят до подписчиков', async () => {
     const { platform, fake } = await started();

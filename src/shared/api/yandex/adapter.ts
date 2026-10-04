@@ -40,7 +40,9 @@ import type {
  *   • **Реклама после сторожа.** На медленной сети ролик открывается позже
  *     пятнадцати секунд, когда сторож уже отпустил игру. Такой поздний `onOpen`
  *     снова ставит игру на паузу через `onPause` — до закрытия ролика или трёх
- *     минут: звук под рекламой — нарушение п. 4.7.
+ *     минут: звук под рекламой — нарушение п. 4.7. Если игрок такой ролик
+ *     досмотрел, награда уходит отдельным каналом, `onLateReward`, после
+ *     закрытия — ответ `showRewarded` к тому времени уже был.
  *
  * Ни один метод не бросает: при отказе площадки игра обязана остаться играбельной.
  */
@@ -80,11 +82,15 @@ export function createYandexPlatform(): PlatformAdapter {
     for (const handler of pauseHandlers) handler(paused);
   };
 
+  /** Кто ждёт поздних наград. */
+  const lateRewardHandlers = new Set<(placement: string) => void>();
+
   /**
    * Реклама, открывшаяся после того, как сторож её отпустил: ставит игру на
-   * паузу до своего закрытия. Зависшую отпускаем тем же длинным сторожем.
+   * паузу до своего закрытия. Зависшую отпускаем тем же длинным сторожем —
+   * `onStuck` узнаёт об этом.
    */
-  const lateAd = (): { open(): void; close(): void } => {
+  const lateAd = (onStuck: () => void = () => undefined): { open(): void; close(): void } => {
     let open = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const close = (): void => {
@@ -100,7 +106,10 @@ export function createYandexPlatform(): PlatformAdapter {
         open = true;
         lateAds += 1;
         publishPause();
-        timer = setTimeout(close, STUCK_AD_TIMEOUT_MS);
+        timer = setTimeout(() => {
+          close();
+          onStuck();
+        }, STUCK_AD_TIMEOUT_MS);
       },
       close,
     };
@@ -229,7 +238,6 @@ export function createYandexPlatform(): PlatformAdapter {
     },
 
     showRewarded(placement: string): Promise<RewardedResult> {
-      void placement;
       return new Promise<RewardedResult>((resolve) => {
         const adv = sdk?.adv;
         if (adv === undefined) {
@@ -240,7 +248,15 @@ export function createYandexPlatform(): PlatformAdapter {
         let settled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
         let rewarded = false;
-        const late = lateAd();
+        /** Ответ дал сторож, а не площадка: позднюю награду ещё можно отдать. */
+        let timedOut = false;
+        let lateRewarded = false;
+        const payLate = (): void => {
+          if (!lateRewarded) return;
+          lateRewarded = false;
+          for (const handler of lateRewardHandlers) handler(placement);
+        };
+        const late = lateAd(payLate);
 
         const settle = (result: RewardedResult): void => {
           if (settled) return;
@@ -253,6 +269,7 @@ export function createYandexPlatform(): PlatformAdapter {
         const arm = (ms: number): void => {
           clearTimeout(timer);
           timer = setTimeout(() => {
+            timedOut = true;
             settle(rewarded ? 'rewarded' : 'error');
           }, ms);
         };
@@ -269,14 +286,18 @@ export function createYandexPlatform(): PlatformAdapter {
                 else arm(STUCK_AD_TIMEOUT_MS);
               },
               // Награда засчитана, но ролик ещё крутится — ждём закрытия.
+              // Ответ уже отдал сторож — награда пойдёт поздним каналом.
               onRewarded: () => {
-                rewarded = true;
+                if (!settled) rewarded = true;
+                else if (timedOut && !rewarded) lateRewarded = true;
               },
               onClose: () => {
                 late.close();
+                payLate();
                 settle(rewarded ? 'rewarded' : 'closed');
               },
               onError: () => {
+                lateRewarded = false;
                 late.close();
                 settle('error');
               },
@@ -289,6 +310,13 @@ export function createYandexPlatform(): PlatformAdapter {
     },
 
     isRewardedAvailable: () => sdk?.adv !== undefined,
+
+    onLateReward(handler: (placement: string) => void): () => void {
+      lateRewardHandlers.add(handler);
+      return () => {
+        lateRewardHandlers.delete(handler);
+      };
+    },
 
     showFullscreen(): Promise<FullscreenResult> {
       return new Promise<FullscreenResult>((resolve) => {

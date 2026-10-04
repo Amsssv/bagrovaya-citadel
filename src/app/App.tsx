@@ -900,20 +900,36 @@ export function App({ platform }: AppProps) {
   // устоял.
   const [repairing, setRepairing] = useState(false);
   const [repairUsed, setRepairUsed] = useState(false);
+  // Ремонт приходит двумя путями — ответом ролика и поздней наградой, —
+  // поэтому «уже чинили» читается синхронно из ref: дважды не чиним.
+  const repairUsedRef = useRef(false);
+  const applyRepair = useCallback(() => {
+    if (repairUsedRef.current || !canRepair(runRef.current)) return;
+    repairUsedRef.current = true;
+    setRepairUsed(true);
+    commitNight(repairCitadel(runRef.current, CITADEL_CONFIG.startHearts), refillRng);
+    // Со стен смываем, кто остался с проигранного боя: ночь начинается заново.
+    setClearToken((token) => token + 1);
+  }, [commitNight, refillRng]);
   const handleRepair = useCallback(() => {
     setRepairing(true);
     void runAd(() => watchRewarded(platform, PLATFORM_CONFIG.rewardedPlacement))
       .then((watched) => {
-        if (!watched || !canRepair(runRef.current)) return;
-        setRepairUsed(true);
-        commitNight(repairCitadel(runRef.current, CITADEL_CONFIG.startHearts), refillRng);
-        // Со стен смываем, кто остался с проигранного боя: ночь начинается заново.
-        setClearToken((token) => token + 1);
+        if (watched) applyRepair();
       })
       .finally(() => {
         setRepairing(false);
       });
-  }, [commitNight, platform, refillRng, runAd]);
+  }, [applyRepair, platform, runAd]);
+  // Ролик открылся уже после сторожа (медленная сеть) и досмотрен: награду
+  // отдаём, если цитадель всё ещё лежит и ремонт не потрачен (canRepair).
+  useEffect(
+    () =>
+      platform.onLateReward((placement) => {
+        if (placement === PLATFORM_CONFIG.rewardedPlacement) applyRepair();
+      }),
+    [applyRepair, platform],
+  );
 
   const bossLane = over ? null : session.bossLane(run.night);
   // Отсчёт до босса — цель ночей, как «The mother of dragons is coming in N

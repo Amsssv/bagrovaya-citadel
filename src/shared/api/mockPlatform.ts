@@ -36,6 +36,8 @@ export interface MockPlatform extends PlatformAdapter {
   readonly calls: readonly string[];
   /** Площадка ставит игру на паузу — как `game_api_pause` у Яндекса. */
   emitPause(paused: boolean): void;
+  /** Досмотрен ролик, от которого сторож уже отказался. */
+  emitLateReward(placement: string): void;
 }
 
 export function createMockPlatform(options: MockOptions = {}): MockPlatform {
@@ -49,6 +51,7 @@ export function createMockPlatform(options: MockOptions = {}): MockPlatform {
   let mode: PlayerMode = options.mode ?? 'guest';
   let cloud: unknown = null;
   const pauseHandlers = new Set<(paused: boolean) => void>();
+  const lateRewardHandlers = new Set<(placement: string) => void>();
 
   return {
     get cloud() {
@@ -59,6 +62,15 @@ export function createMockPlatform(options: MockOptions = {}): MockPlatform {
     },
     emitPause(paused: boolean) {
       for (const handler of pauseHandlers) handler(paused);
+    },
+    emitLateReward(placement: string) {
+      for (const handler of lateRewardHandlers) handler(placement);
+    },
+    onLateReward(handler: (placement: string) => void): () => void {
+      lateRewardHandlers.add(handler);
+      return () => {
+        lateRewardHandlers.delete(handler);
+      };
     },
     showFullscreen(): Promise<FullscreenResult> {
       calls.push('showFullscreen');
@@ -180,6 +192,7 @@ export function createAbsentPlatform(): PlatformAdapter {
     isRewardedAvailable: () => false,
     showFullscreen: () => Promise.resolve('error'),
     onPause: () => () => undefined,
+    onLateReward: () => () => undefined,
     getProducts: () => Promise.resolve([]),
     purchase: () => Promise.resolve({ status: 'unavailable' }),
     consume: () => Promise.resolve(),
