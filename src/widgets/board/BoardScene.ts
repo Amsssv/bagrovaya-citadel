@@ -2571,10 +2571,8 @@ export class BoardScene extends Phaser.Scene {
       if (image === null) continue;
       const at = artToScreen(layout, FIELD_SIZE, layer);
       image.setPosition(at.x, at.y);
-      image.setDisplaySize(
-        image.frame.width * layer.scale * scale,
-        image.frame.height * layer.scale * scale,
-      );
+      const width = layer.width * scale;
+      image.setDisplaySize(width, (width * image.frame.height) / image.frame.width);
     }
 
     board.cells.forEach((cell, index) => {
