@@ -87,6 +87,8 @@ declare global {
 
   interface Window {
     YaGames?: { init(): Promise<YandexGamesSDK> };
+    /** Подъём SDK, начатый из входа в игру ещё до бандла (`yandex/earlyInit.ts`). */
+    __yaSdkInit?: Promise<YandexGamesSDK>;
   }
 }
 
