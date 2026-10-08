@@ -346,8 +346,10 @@ export function App({ platform }: AppProps) {
   );
 
   // Реклама в игре — только в двух случаях: полноэкранная раз в 10 минут игры
-  // и ролик за ремонт цитадели раз за сессию. Полноэкранная ждёт естественной
-  // паузы — конца ночи или нового забега, — а не выскакивает посреди хода.
+  // и ролик за ремонт цитадели раз за сессию. Полноэкранная — в логическую
+  // паузу (п. 4.4): последний ход ночи сделан, поле доиграло, а атака ещё не
+  // началась (так согласовано с модерацией), и по кнопке нового забега — вне
+  // игрового процесса это можно. Посреди ночи и после боя — нельзя.
   const playSecondsRef = useRef(0);
   const pausedRef = useRef(paused);
   useEffect(() => {
@@ -761,13 +763,25 @@ export function App({ platform }: AppProps) {
 
   // Рассвет наступает сам: кровь кончилась, и поле доиграло последний ход.
   // Запуск — отсюда, а не из эффекта: сигнал «доиграно» и есть тот момент.
+  // Перед атакой — пауза для полноэкранной рекламы, если подошли 10 минут.
+  // Пока она идёт, «доиграно» может прийти ещё раз — рассвет всё равно один.
+  const handleDawnRef = useRef(handleDawn);
+  useEffect(() => {
+    handleDawnRef.current = handleDawn;
+  }, [handleDawn]);
+  const dawnPendingRef = useRef(false);
   const handleStagesDone = useCallback(() => {
     setSettled(true);
     if (!isExhausted(runRef.current.purse)) return;
     // В обучении рассвет ждёт карточку: игрок сначала читает, что будет.
     if (beatRef.current !== null) return;
-    handleDawn();
-  }, [handleDawn]);
+    if (dawnPendingRef.current) return;
+    dawnPendingRef.current = true;
+    void fullscreenIfDue().then(() => {
+      dawnPendingRef.current = false;
+      handleDawnRef.current();
+    });
+  }, [fullscreenIfDue]);
 
   const dismissTutorialCard = useCallback(() => {
     const current = beatNow();
@@ -794,10 +808,7 @@ export function App({ platform }: AppProps) {
     }
     // Новая ночь — новая отмена.
     commitNight(pending, refillRng);
-    // Между ночами — естественная пауза для полноэкранной рекламы. В обучении
-    // её нет: первый день не прерываем.
-    if (beatRef.current === null) void fullscreenIfDue();
-  }, [beatNow, commitNight, fullscreenIfDue, nextBeat, refillRng]);
+  }, [beatNow, commitNight, nextBeat, refillRng]);
 
   /** Другой забег целиком: поле раздаётся заново, бой и кровь в пути — забыты. */
   const resetSession = useCallback(
@@ -827,6 +838,12 @@ export function App({ platform }: AppProps) {
     if (tutorial) setBeat(0);
     resetSession(next, true);
   }, [gate, level.id, resetSession, setBeat]);
+
+  // «Начать заново» — пауза вне игры (п. 4.4): если подошли 10 минут, реклама —
+  // сразу по кнопке. Забег начинается по любому её исходу.
+  const restart = useCallback(() => {
+    void fullscreenIfDue().then(restartNow);
+  }, [fullscreenIfDue, restartNow]);
 
   /**
    * Поднять игру заново из сейва на устройстве — после того как туда лёг
@@ -889,11 +906,6 @@ export function App({ platform }: AppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platformInited, signIns]);
 
-  // Новый забег — естественная пауза: если подошли 10 минут, реклама — здесь.
-  // Забег начинается по любому её исходу.
-  const restart = useCallback(() => {
-    void fullscreenIfDue().then(restartNow);
-  }, [fullscreenIfDue, restartNow]);
 
   // Ремонт цитадели за ролик — один раз за сессию: пала повторно — ролика уже
   // нет. После ремонта забег идёт дальше со следующей ночи, как будто замок
