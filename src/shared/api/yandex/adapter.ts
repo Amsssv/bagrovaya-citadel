@@ -155,8 +155,7 @@ export function createYandexPlatform(): PlatformAdapter {
     init(): Promise<void> {
       initOnce ??= (async () => {
         try {
-          // Вход в игру мог уже начать подъём (`earlyInit.ts`) — ждём его.
-          sdk = (await (window.__yaSdkInit ?? window.YaGames?.init())) ?? null;
+          sdk = (await window.YaGames?.init()) ?? null;
           sdk?.on('game_api_pause', () => {
             sdkPaused = true;
             publishPause();

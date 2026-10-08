@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createYandexPlatform } from './adapter';
-import { startSdkEarly } from './earlyInit';
 
 type AdvCallbacks = {
   onOpen?: () => void;
@@ -249,31 +248,6 @@ describe('подъём площадки', () => {
     await platform.init();
     expect(init).toHaveBeenCalledTimes(1);
     expect(platform.isReady()).toBe(true);
-  });
-
-  it('подъём, начатый из входа в игру, не повторяется', async () => {
-    const fake = createFake();
-    const init = vi.fn(() => Promise.resolve(fake.sdk));
-    vi.stubGlobal('window', { YaGames: { init } });
-    startSdkEarly();
-    const platform = createYandexPlatform();
-    await platform.init();
-    expect(init).toHaveBeenCalledTimes(1);
-    expect(platform.isReady()).toBe(true);
-  });
-
-  it('ранний подъём упал — играем без площадки, без необработанной ошибки', async () => {
-    vi.stubGlobal('window', { YaGames: { init: () => Promise.reject(new Error('нет сети')) } });
-    startSdkEarly();
-    const platform = createYandexPlatform();
-    await expect(platform.init()).resolves.toBeUndefined();
-    expect(platform.isReady()).toBe(false);
-  });
-
-  it('SDK нет — ранний подъём ничего не делает', () => {
-    vi.stubGlobal('window', {});
-    startSdkEarly();
-    expect(window.__yaSdkInit).toBeUndefined();
   });
 
   it('SDK есть, а игрок не отдался — остаёмся гостем', async () => {
