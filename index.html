@@ -124,15 +124,6 @@
         #app-loader, #app-loader * { animation: none !important; transition-duration: 0.01ms !important; }
       }
     </style>
-    <!--
-      SDK площадки. Обычный скрипт, а не модуль: он должен успеть выполниться до
-      кода игры. Путь относительный, `/sdk.js`, — так требует площадка для игр,
-      загруженных архивом (п. 1.7): файл отдаёт сам хостинг Яндекс Игр, копию
-      класть нельзя. Старый адрес https://yandex.ru/games/sdk/v2 не проходит
-      модерацию (matching-game). Вне Яндекса файла нет, window.YaGames не
-      появится — игра это переживает и идёт на местном сохранении.
-    -->
-    <script src="/sdk.js"></script>
   </head>
   <body>
     <div id="app-loader" role="progressbar" aria-label="Загрузка" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -167,15 +158,33 @@
         var level = document.getElementById('app-loader-level');
         var pct = document.getElementById('app-loader-pct');
         var hidden = false;
+        // Первая часть капли — бандл игры: он грузится после `load` страницы
+        // (src/app/main.tsx), и долю скачанного у браузера не узнать. Пока он
+        // едет, капля медленно подползает к BUNDLE; арт поля — остальное.
+        var BUNDLE = 0.3;
+        var shown = 0;
+        var real = false;
+        var draw = function (v) {
+          if (!el || hidden) return;
+          el.classList.add('app-loader--active');
+          shown = v;
+          var n = Math.round(v * 100);
+          if (level) level.style.transform = 'translateY(' + (80 - v * 80) + 'px)';
+          if (pct) pct.textContent = n + '%';
+          el.setAttribute('aria-valuenow', String(n));
+        };
+        var creep = setInterval(function () {
+          if (real || hidden) return clearInterval(creep);
+          draw(shown + (BUNDLE - shown) * 0.08);
+        }, 200);
         window.__appLoader = {
           set: function (p) {
             if (!el || hidden) return;
-            el.classList.add('app-loader--active');
+            real = true;
             var v = p < 0 ? 0 : p > 1 ? 1 : p || 0;
-            var n = Math.round(v * 100);
-            if (level) level.style.transform = 'translateY(' + (80 - v * 80) + 'px)';
-            if (pct) pct.textContent = n + '%';
-            el.setAttribute('aria-valuenow', String(n));
+            v = BUNDLE + v * (1 - BUNDLE);
+            if (v < shown) v = shown;
+            draw(v);
           },
           hide: function () {
             if (hidden || !el) return;
@@ -191,6 +200,16 @@
         };
       })();
     </script>
+    <!--
+      SDK площадки — ниже экрана загрузки: пока он качается, экран уже нарисован.
+      Обычный скрипт, а не модуль: он должен успеть выполниться до кода игры.
+      Путь относительный, `/sdk.js`, — так требует площадка для игр, загруженных
+      архивом (п. 1.7): файл отдаёт сам хостинг Яндекс Игр, копию
+      класть нельзя. Старый адрес https://yandex.ru/games/sdk/v2 не проходит
+      модерацию (matching-game). Вне Яндекса файла нет, window.YaGames не
+      появится — игра это переживает и идёт на местном сохранении.
+    -->
+    <script src="/sdk.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>
