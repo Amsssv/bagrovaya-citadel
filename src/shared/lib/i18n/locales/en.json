@@ -47,7 +47,7 @@
     "thePreacher": "The Herald",
     "onABossNight": "On a boss night the lane he will take is highlighted during Dusk: build up your defence in that column in time. Fog lined up with your firepower keeps him under fire for longer.",
     "citadelTowers": "Citadel towers",
-    "twoTowersStandAbove": "Two towers stand above the outer columns. Drag a gargoyle from a top corner of the board up into the wall — it costs a drop of blood. From the tower it hits two cells in every direction, right where enemies reach the gate.",
+    "twoTowersStandAbove": "Two towers stand above the outer columns. Drag a gargoyle from a top corner of the board up into the wall — it costs a drop of blood. From the tower it covers everything within two cells of it: the three outer columns, two rows deep from the gate.",
     "anOccupiedTowerOnly": "An occupied tower only takes a gargoyle of a higher tier — the old one is lost. Against the Herald you need the top tiers.",
     "howToPlay": "How to play",
     "helpSections": "Help sections",
@@ -217,7 +217,7 @@
       },
       "towered": {
         "title": "Gargoyle in the tower",
-        "text": "From the tower it hits two cells away in every direction for the rest of the run. An occupied tower only takes a gargoyle one tier higher."
+        "text": "From the tower it covers everything within two cells of it — three columns by two rows at the gate — for the rest of the run. An occupied tower only takes a gargoyle one tier higher."
       },
       "thorn": {
         "title": "Three thorns",
@@ -311,7 +311,7 @@
       },
       "turret": {
         "title": "Castle tower",
-        "text": "A gargoyle in a top corner can go up into a tower: drag it up into the wall. From there it hits two cells away."
+        "text": "A gargoyle in a top corner can go up into a tower: drag it up into the wall. From there it covers everything within two cells of it: three columns by two rows at the gate."
       }
     }
   },
