@@ -47,6 +47,13 @@ import type {
  * Ни один метод не бросает: при отказе площадки игра обязана остаться играбельной.
  */
 const NO_CALLBACK_TIMEOUT_MS = 15_000;
+/**
+ * Полноэкранная показывается перед атакой, и рассвет ждёт её ответа: молчащий
+ * SDK (блокировщик, нет показа) держал бы поле на паузе пятнадцать секунд —
+ * игрок видел бы, что враг не нападает. Ждём открытия коротко; открылась
+ * позже — поздняя реклама снова ставит игру на паузу (`lateAd`).
+ */
+const FULLSCREEN_OPEN_TIMEOUT_MS = 3_000;
 const STUCK_AD_TIMEOUT_MS = 180_000;
 const MIN_SET_SCORE_GAP_MS = 1000;
 const SAVE_KEY = 'save';
@@ -334,15 +341,16 @@ export function createYandexPlatform(): PlatformAdapter {
           clearTimeout(timer);
           resolve(result);
         };
-        // Те же сторожа, что у ролика: без них сломанный SDK оставил бы игру
-        // на паузе навсегда.
+        // Сторожа как у ролика, только до открытия ждём коротко
+        // (FULLSCREEN_OPEN_TIMEOUT_MS): без них сломанный SDK оставил бы игру на
+        // паузе навсегда.
         const arm = (ms: number): void => {
           clearTimeout(timer);
           timer = setTimeout(() => {
             settle('error');
           }, ms);
         };
-        arm(NO_CALLBACK_TIMEOUT_MS);
+        arm(FULLSCREEN_OPEN_TIMEOUT_MS);
         try {
           show.call(sdk?.adv, {
             callbacks: {

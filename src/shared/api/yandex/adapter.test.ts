@@ -861,12 +861,50 @@ describe('полноэкранная реклама', () => {
     expect(await shown).toBe('error');
   });
 
-  it('SDK молчит — через пятнадцать секунд отпускаем', async () => {
+  // Рассвет ждёт ответа полноэкранной: молчащий SDK (блокировщик, нет показа)
+  // не должен держать атаку дольше трёх секунд.
+  it('SDK молчит — через три секунды отпускаем, рассвет не ждёт пятнадцать', async () => {
     const { platform } = await started();
     vi.useFakeTimers();
     const shown = platform.showFullscreen();
-    await vi.advanceTimersByTimeAsync(15_000);
+    let done = false;
+    void shown.then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
     expect(await shown).toBe('error');
+  });
+
+  it('открылась на второй секунде — короткий сторож снят, ждём закрытия', async () => {
+    const { platform, fake } = await started();
+    vi.useFakeTimers();
+    const shown = platform.showFullscreen();
+    await vi.advanceTimersByTimeAsync(2_000);
+    fake.fullscreen().onOpen?.();
+    let done = false;
+    void shown.then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(done).toBe(false);
+    fake.fullscreen().onClose?.(true);
+    expect(await shown).toBe('shown');
+  });
+
+  it('открылась после короткого сторожа — снова пауза до закрытия', async () => {
+    const { platform, fake } = await started();
+    const seen: boolean[] = [];
+    platform.onPause((paused) => seen.push(paused));
+    vi.useFakeTimers();
+    const shown = platform.showFullscreen();
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(await shown).toBe('error');
+    fake.fullscreen().onOpen?.();
+    expect(seen).toEqual([true]);
+    fake.fullscreen().onClose?.(true);
+    expect(seen).toEqual([true, false]);
   });
 
   it('открылась и зависла — короткий сторож не обрывает, длинный отпускает', async () => {

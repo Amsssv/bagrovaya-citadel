@@ -83,6 +83,7 @@ import { SAVE_INTERVAL_MS, STORAGE_KEY, boot } from './persistence';
 import { PILOT, PILOT_STORAGE, useBotPilot } from './botPilot';
 import { withTutorial } from './tutorialRun';
 import { coachFor } from './coach';
+import { isFullscreenDue, playSecondsAfterFullscreen } from './fullscreenClock';
 import { useDocumentHidden, useFlash, useReserveBottom } from './hooks';
 
 /**
@@ -103,12 +104,6 @@ import { useDocumentHidden, useFlash, useReserveBottom } from './hooks';
 const BONUS_TOAST_MS = 1600;
 /** Сколько висит объяснение, почему нельзя отменить ход. */
 const NOTICE_MS = 2200;
-/**
- * Полноэкранная реклама — не чаще раза в 3 минуты игры. Время идёт, только
- * пока игра на экране и не на паузе. Платформа сверху держит свой лимит
- * частоты: слишком ранний вызов она просто не показывает.
- */
-const FULLSCREEN_EVERY_S = 180;
 /** Облако пишется реже устройства: площадка не любит частые записи. */
 const CLOUD_SAVE_INTERVAL_MS = 30_000;
 
@@ -364,12 +359,11 @@ export function App({ platform }: AppProps) {
   }, []);
   /** Пора показать полноэкранную — показываем; нет — сразу дальше. */
   const fullscreenIfDue = useCallback(async (): Promise<void> => {
-    if (!platformReady || playSecondsRef.current < FULLSCREEN_EVERY_S) return;
-    // Отсчёт заново — только после показа. Не показалась (лимит площадки,
-    // нет рекламы, ошибка) — пробуем в следующую паузу, а не через 3 минуты.
-    if ((await runAd(() => platform.showFullscreen())) === 'shown') {
-      playSecondsRef.current = 0;
-    }
+    if (!platformReady || !isFullscreenDue(playSecondsRef.current)) return;
+    // Показалась — отсчёт заново; нет (лимит площадки, нет рекламы, ошибка) —
+    // повтор через минуту игры, а не на каждом рассвете (fullscreenClock).
+    const result = await runAd(() => platform.showFullscreen());
+    playSecondsRef.current = playSecondsAfterFullscreen(result);
   }, [platform, platformReady, runAd]);
 
   // Площадке говорят о готовности один раз и только когда играть уже можно:
